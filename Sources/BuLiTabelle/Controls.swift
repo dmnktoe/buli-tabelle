@@ -19,7 +19,7 @@ struct XPButtonStyle: ButtonStyle {
             .bevel(sunken: configuration.isPressed)
             .overlay(
                 emphasized
-                    ? Rectangle().strokeBorder(Color.black.opacity(0.75), lineWidth: 1).padding(-1)
+                    ? Rectangle().strokeBorder(XP.bundesligaRed, lineWidth: 1).padding(-1)
                     : nil
             )
             .contentShape(Rectangle())

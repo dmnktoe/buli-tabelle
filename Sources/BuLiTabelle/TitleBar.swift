@@ -65,7 +65,7 @@ struct TitleBar: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            MiniFlagIcon()
+            MiniBallIcon()
             Text("\(AppInfo.name) \(AppInfo.displayVersion)  ·  \(model.liga.display)  ·  Saison \(model.seasonShort)  ·  \(model.spieltag). Spieltag")
                 .font(.tahoma(11, bold: true))
                 .foregroundStyle(.white)
@@ -83,7 +83,7 @@ struct TitleBar: View {
         }
         .padding(.horizontal, 6)
         .frame(height: 28)
-        .background(XP.titleGradient)
+        .titleBarBackground()
     }
 }
 

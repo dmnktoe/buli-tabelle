@@ -32,7 +32,10 @@ struct FilterBar: View {
             RetroDropdown(
                 items: Array(1...max(model.maxSpieltag, 1)),
                 display: { "\($0). Spieltag" },
-                selection: $model.spieltag
+                selection: Binding(
+                    get: { model.spieltag },
+                    set: { model.jumpToSpieltag($0) }
+                )
             )
             .frame(width: W.spieltag)
 

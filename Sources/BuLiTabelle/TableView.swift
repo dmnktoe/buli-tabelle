@@ -73,6 +73,7 @@ struct TableHeader: View {
         .foregroundStyle(.white)
         .frame(height: 20)
         .background(Color.black)
+        .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
     }
 }
 
@@ -158,12 +159,19 @@ struct TableRowView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             model.selectedTeamID = isSelected ? nil : row.id
+            if !isSelected { Analytics.signal(.teamSelected) }
         }
         .contextMenu {
             if isFavorite {
-                Button("Lieblingsverein entfernen") { favoriteTeam = 0 }
+                Button("Lieblingsverein entfernen") {
+                    favoriteTeam = 0
+                    Analytics.signal(.favoriteCleared)
+                }
             } else {
-                Button("★ Als Lieblingsverein festlegen") { favoriteTeam = row.id }
+                Button("★ Als Lieblingsverein festlegen") {
+                    favoriteTeam = row.id
+                    Analytics.signal(.favoriteSet)
+                }
             }
         }
     }

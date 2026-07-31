@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION=$(grep 'static let version' Sources/BuLiTabelle/Version.swift | sed -E 's/.*"([^"]+)".*/\1/')
-APP="build/BuLiTabelle.app"
+APP="build/BuLi Tabelle.app"
 DIST="dist"
 GH_REPO="${GH_REPO:-dmnktoe/buli-tabelle}"
 DOWNLOAD_PREFIX="https://github.com/${GH_REPO}/releases/download/v${VERSION}/"

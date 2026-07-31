@@ -10,7 +10,7 @@ SU_PUBLIC_ED_KEY="${SU_PUBLIC_ED_KEY:-gxNmaeCPi8fURiL6/sV9o66NstNRtjk9b2SIv2PiO9
 
 SIGN_IDENTITY="${SIGN_IDENTITY:-}"
 
-APP=build/BuLiTabelle.app
+APP="build/BuLi Tabelle.app"
 FW_SRC=".build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 
 echo "▸ BuLi Tabelle $VERSION (Build $BUILD)"
@@ -49,6 +49,9 @@ if [ ! -f Resources/AppIcon.icns ]; then
   bash scripts/make-icon.sh || echo "Hinweis: Icon konnte nicht erzeugt werden."
 fi
 [ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
+
+# Vektor-Template für Menüleiste und Titelleisten (siehe scripts/make-icon-assets.py).
+[ -f Resources/MenuBarBall.pdf ] && cp Resources/MenuBarBall.pdf "$APP/Contents/Resources/"
 
 if [ ! -d "$FW_SRC" ]; then
   echo "Sparkle nicht gefunden – löse Abhängigkeit auf…"; swift package resolve

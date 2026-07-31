@@ -11,6 +11,10 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <style>
   /* ---------- Reset & Grundlayout ---------- */
+  /* Bundesliga-Rot als Akzent – dieselbe Farbe wie im App-Icon. Bewusst nur für
+     Trennlinien und Überschriften, damit es sich nicht mit dem Rasengrün und den
+     grünen Zonenfarben der Tabelle beißt. */
+  :root { --buli-red: #c12a24; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
@@ -66,7 +70,7 @@
     font-weight: bold;
     text-shadow: 1px 1px 0 rgba(0,0,0,.45);
     background: linear-gradient(#4a8cf7 0%, #1f5fd6 8%, #1e56c8 45%, #1b4fbe 55%, #16419e 100%);
-    border-bottom: 1px solid #0c3a94;
+    border-bottom: 2px solid var(--buli-red);
   }
   .titlebar .ico { width: 18px; height: 18px; flex: 0 0 auto; }
   .titlebar .t { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -110,7 +114,7 @@
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
   .panel { background: #fff; padding: 12px 14px; border: 1px solid #d7d3c4; border-radius: 4px; }
-  .panel h2 { font-size: 13px; color: #16419e; border-bottom: 2px solid #2f7d33; padding-bottom: 5px; margin-bottom: 8px; }
+  .panel h2 { font-size: 13px; color: #16419e; border-bottom: 2px solid var(--buli-red); padding-bottom: 5px; margin-bottom: 8px; }
   ul.feat { margin: 0; padding-left: 4px; list-style: none; }
   ul.feat li { margin: 5px 0; padding-left: 18px; text-indent: -18px; }
   ul.feat li::before { content: "⚽ "; }
@@ -130,12 +134,13 @@
     display: flex; align-items: center; gap: 5px; height: 20px; padding: 0 5px;
     color: #fff; font: bold 11px Tahoma, sans-serif; text-shadow: 1px 1px 0 rgba(0,0,0,.4);
     background: linear-gradient(#4a8cf7, #1e56c8 55%, #16419e);
+    border-bottom: 2px solid var(--buli-red);
   }
   .shot .tb .f { flex: 1; }
   .shot .bar { display: flex; gap: 4px; padding: 5px; }
   .shot .chip { font-size: 10px; padding: 2px 6px; background: #ece9d8; }
   table.tab { width: 100%; border-collapse: collapse; font-size: 10px; background: #fff; }
-  table.tab th { background: #d6e3f8; color: #16419e; font-weight: bold; padding: 2px 4px; text-align: left; border-bottom: 1px solid #aca899; }
+  table.tab th { background: #d6e3f8; color: #16419e; font-weight: bold; padding: 2px 4px; text-align: left; border-bottom: 2px solid var(--buli-red); }
   table.tab td { padding: 1px 4px; border-bottom: 1px solid #eee; white-space: nowrap; }
   table.tab td.n { text-align: right; }
   .z-cl { background: #9fe89f; } .z-el { background: #c4f0c4; } .z-ecl { background: #e2f8e2; }
@@ -280,7 +285,7 @@
           <h2>So installierst du BuLi Tabelle</h2>
           <ol class="steps">
             <li><b>ZIP herunterladen</b> und entpacken (Doppelklick).</li>
-            <li><b><code>BuLiTabelle.app</code> nach <code>/Programme</code> ziehen.</b></li>
+            <li><b><code>BuLi&nbsp;Tabelle.app</code> nach <code>/Programme</code> ziehen.</b></li>
             <li>Beim ersten Start: <kbd>Rechtsklick → Öffnen</kbd>, falls macOS
               wegen fehlender Notarisierung warnt.</li>
             <li>Fertig! Künftige Updates holt sich die App über

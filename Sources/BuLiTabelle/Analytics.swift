@@ -28,8 +28,51 @@ enum Analytics {
         ensureInitialized()
     }
 
-    static func signal(_ name: String) {
+    /// Sendet ein Ereignis, sofern die Nutzungsstatistik aktiviert ist.
+    ///
+    /// Der Guard greift bei jedem Aufruf neu: Wer den Schalter in den Einstellungen
+    /// umlegt, verschickt ab sofort keine Ereignisse mehr.
+    static func signal(_ event: Event, _ parameters: [String: String] = [:]) {
         guard ensureInitialized() else { return }
-        TelemetryDeck.signal(name)
+        TelemetryDeck.signal(event.rawValue, parameters: parameters)
+    }
+}
+
+extension Analytics {
+    /// Ereignisnamen in TelemetryDeck-Konvention `Bereich.aktion`.
+    ///
+    /// Bewusst nur anonyme Interaktionen – keine Tabelleninhalte, keine Kennungen.
+    enum Event: String {
+        case appLaunched = "App.launched"
+
+        case tableLoaded = "Table.loaded"
+        case tableLoadFailed = "Table.loadFailed"
+        case tableReloadRequested = "Table.reloadRequested"
+        case tableCurrentRequested = "Table.currentRequested"
+        case tableCopied = "Table.copied"
+        case tableExported = "Table.exported"
+        case tablePrinted = "Table.printed"
+
+        case leagueChanged = "League.changed"
+        case seasonChanged = "Season.changed"
+        case tableModeChanged = "TableMode.changed"
+        case matchdayChanged = "Matchday.changed"
+        case matchdayPanelToggled = "MatchdayPanel.toggled"
+
+        case teamSelected = "Team.selected"
+        case favoriteSet = "Team.favoriteSet"
+        case favoriteCleared = "Team.favoriteCleared"
+
+        case statsOpened = "Stats.opened"
+        case infoOpened = "Info.opened"
+        case settingsOpened = "Settings.opened"
+        case settingChanged = "Setting.changed"
+
+        case updateCheckRequested = "Update.checkRequested"
+        case bugReported = "Bug.reported"
+        case dataSourceOpened = "DataSource.opened"
+
+        case menuBarOpened = "MenuBar.opened"
+        case menuBarWindowOpened = "MenuBar.windowOpened"
     }
 }

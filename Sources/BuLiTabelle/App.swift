@@ -114,6 +114,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         Analytics.start()
+        Analytics.signal(.appLaunched, [
+            "version": AppInfo.version,
+            "menuBarItem": UserDefaults.standard.bool(forKey: "showMenuBarItem") ? "on" : "off",
+        ])
         ScreenshotComposer.scheduleIfRequested()
     }
 
@@ -174,7 +178,7 @@ struct BuLiTabelleApp: App {
                 .environmentObject(model)
                 .environmentObject(updater)
         } label: {
-            Image(nsImage: .menuBarFlag)
+            Image(nsImage: .soccerBall)
         }
         .menuBarExtraStyle(.window)
     }

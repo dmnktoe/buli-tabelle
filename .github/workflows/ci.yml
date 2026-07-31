@@ -45,12 +45,12 @@ jobs:
 
       - name: Bundle prüfen
         run: |
-          test -d build/BuLiTabelle.app || { echo "::error::build/BuLiTabelle.app fehlt"; exit 1; }
-          codesign --verify --deep --strict --verbose=2 build/BuLiTabelle.app || true
+          test -d "build/BuLi Tabelle.app" || { echo "::error::build/BuLi Tabelle.app fehlt"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "build/BuLi Tabelle.app" || true
 
       - name: E2E-Smoke – App starten, darf nicht crashen
         run: |
-          BIN=build/BuLiTabelle.app/Contents/MacOS/BuLiTabelle
+          BIN="build/BuLi Tabelle.app/Contents/MacOS/BuLiTabelle"
           BULI_SCREENSHOT="$PWD/smoke.png" "$BIN" > app.log 2>&1 &
           PID=$!
           for _ in $(seq 1 12); do
