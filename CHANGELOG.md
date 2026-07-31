@@ -7,6 +7,13 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [1.2.1] – 2026-07-31
+
+### Geändert
+
+- Die Auswahlfelder für Liga, Saison und Spieltag markieren den aktuell
+  gewählten Eintrag im aufgeklappten Menü mit einem Häkchen.
+
 ## [1.2.0] – 2026-07-31
 
 ### Hinzugefügt
@@ -95,7 +102,8 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
   selbst gezeichnet — Luna-Verlauf, schwarze Kopfzeile, Zonenfarben.
   (Ab 1.1.0 durch das Icon-Composer-Icon ersetzt.)
 
-[Unveröffentlicht]: https://github.com/dmnktoe/buli-tabelle/compare/v1.2.0...HEAD
+[Unveröffentlicht]: https://github.com/dmnktoe/buli-tabelle/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/dmnktoe/buli-tabelle/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/dmnktoe/buli-tabelle/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/dmnktoe/buli-tabelle/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/dmnktoe/buli-tabelle/releases/tag/v1.0.0
