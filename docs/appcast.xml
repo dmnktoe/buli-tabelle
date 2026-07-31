@@ -3,6 +3,28 @@
     <channel>
         <title>BuLi Tabelle</title>
         <item>
+            <title>1.2.0</title>
+            <pubDate>Fri, 31 Jul 2026 14:10:03 +0000</pubDate>
+            <sparkle:version>6</sparkle:version>
+            <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/dmnktoe/buli-tabelle/releases/download/v1.2.0/BuLiTabelle-1.2.0.zip" length="2519735" type="application/octet-stream" sparkle:edSignature="S2RmsSLlH6QU79QoqU1GBPdO5XwD8jTiCYvkIohnoOd8Wo5k+5tkad/QGw3AYl7OWqNhIJcR0tvNM2Gw/DGbCQ==" />
+            <description>&lt;h4&gt;Hinzugefügt&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;DFB-Pokal&lt;/b&gt; als vierter Wettbewerb in der Ligaauswahl. Der Pokal ist rundenbasiert statt tabellenbasiert, deshalb zeigt die App hier keine Tabelle, sondern die Paarungen der gewählten Runde — von der 1. Runde bis zum Finale.&lt;/li&gt;
+&lt;li&gt;Der &lt;b&gt;Sieger&lt;/b&gt; jeder Partie steht fett, der Ausgeschiedene wird abgeblendet. Entscheidet erst die Verlängerung oder das Elfmeterschießen, wird das mit „n. V.“ bzw. „i. E.“ gekennzeichnet und der Spielstand entsprechend gezeigt.&lt;/li&gt;
+&lt;li&gt;Zwischen den Runden wird &lt;b&gt;ausgelost&lt;/b&gt;. Eine Runde ohne Paarungen ist deshalb kein Fehler, sondern wird als „Die Auslosung für diese Runde steht noch aus“ ausgewiesen.&lt;/li&gt;
+&lt;li&gt;Der Rundenkopf zeigt den Fortschritt („5 von 8 Spielen gespielt“), nach Abschluss einer Runde stehen die weitergekommenen Mannschaften darunter.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Kopieren, HTML-Export und Drucken&lt;/b&gt; geben im Pokalmodus die Paarungen der Runde aus statt einer Tabelle.&lt;/li&gt;
+&lt;li&gt;Das &lt;b&gt;Menüleisten-Panel&lt;/b&gt; zeigt im Pokalmodus ebenfalls die Runde.&lt;/li&gt;
+&lt;li&gt;Beim Öffnen springt die App auf die &lt;b&gt;laufende Runde&lt;/b&gt; — im Pokal liegen zwischen den Runden Wochen, deshalb ist sie interessanter als die zuletzt gespielte.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;Geändert&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;Beschriftungen richten sich nach dem Wettbewerb: „Spieltag“ wird im Pokal zu „Runde“, „Aktuelle Tabelle“ zu „Aktuelle Runde“. Heim- und Auswärtstabelle entfallen dort, ebenso die Auf- und Abstiegszonen.&lt;/li&gt;
+&lt;/ul&gt;</description>
+        </item>
+        <item>
             <title>1.1.0</title>
             <pubDate>Fri, 31 Jul 2026 13:57:01 +0000</pubDate>
             <sparkle:version>4</sparkle:version>
