@@ -44,6 +44,7 @@ final class AppModel: ObservableObject {
     @Published var status = "Fertig"
     @Published var showSpieltagMenu = false
     @Published var alert: RetroAlertInfo?
+    @Published private(set) var cupRounds: [CupRound] = []
     @Published private(set) var goalgetters: [OLGoalGetter] = []
     @Published private(set) var loadingStats = false
     @Published private(set) var isLoading = false
@@ -67,6 +68,9 @@ final class AppModel: ObservableObject {
     var seasonShort: String { SeasonCalendar.shortString(season) }
 
     var tableTitle: String {
+        if liga.isCup {
+            return "\(liga.display) \(seasonString) – \(roundName(spieltag))"
+        }
         let base = "\(liga.display) \(seasonString) – \(spieltag). Spieltag"
         switch tableMode {
         case .gesamt: return base
@@ -77,6 +81,24 @@ final class AppModel: ObservableObject {
 
     var canGoPrevSpieltag: Bool { spieltag > 1 }
     var canGoNextSpieltag: Bool { spieltag < max(maxSpieltag, 1) }
+
+    // MARK: - Pokal
+
+    /// Die gerade gewählte Pokalrunde – `nil` außerhalb des Pokalmodus.
+    var currentCupRound: CupRound? {
+        cupRounds.first { $0.order == spieltag }
+    }
+
+    /// Anzeigename einer Runde. Greift auf die geladenen Daten zurück und fällt
+    /// auf „N. Runde“ zurück, solange nichts geladen ist.
+    func roundName(_ order: Int) -> String {
+        cupRounds.first { $0.order == order }?.name ?? "\(order). Runde"
+    }
+
+    /// Beschriftung fürs Auswahlfeld – im Pokal Rundennamen, sonst Spieltage.
+    func periodLabel(_ order: Int) -> String {
+        liga.isCup ? CupBracket.shortName(roundName(order)) : "\(order). Spieltag"
+    }
 
     // MARK: - Laden & Berechnen
 
@@ -93,9 +115,9 @@ final class AppModel: ObservableObject {
         do {
             let ms = try await api.matches(liga: liga, season: season)
             matches = ms
-            maxSpieltag = ms.map(\.group.groupOrderID).max() ?? 34
-            let lastFinished = ms.filter(\.matchIsFinished).map(\.group.groupOrderID).max() ?? 1
-            let target = min(lastFinished, maxSpieltag)
+            maxSpieltag = ms.map(\.group.groupOrderID).max() ?? (liga.isCup ? 6 : 34)
+            // `recompute()` baut die Runden – hier reicht der Sprung ans Ziel.
+            let target = min(defaultPeriod(for: ms), maxSpieltag)
             if spieltag == target {
                 recompute()
             } else {
@@ -115,6 +137,7 @@ final class AppModel: ObservableObject {
         } catch {
             matches = []
             rows = []
+            cupRounds = []
             matchesOfSpieltag = []
             status = "Fehler beim Laden"
             Analytics.signal(.tableLoadFailed, [
@@ -127,6 +150,22 @@ final class AppModel: ObservableObject {
                 message: "Daten konnten nicht geladen werden.\n\n\(error.localizedDescription)"
             )
         }
+    }
+
+    /// Auf welchen Spieltag bzw. welche Runde nach dem Laden gesprungen wird.
+    ///
+    /// In der Liga ist das der letzte angepfiffene Spieltag. Im Pokal liegen
+    /// zwischen den Runden Wochen — dort ist die erste noch nicht abgeschlossene
+    /// Runde interessanter als die letzte gespielte.
+    private func defaultPeriod(for ms: [OLMatch]) -> Int {
+        if liga.isCup {
+            let rounds = CupBracket.rounds(from: ms)
+            if let running = rounds.first(where: { $0.isDrawn && !$0.isComplete }) {
+                return running.order
+            }
+            return rounds.last(where: \.isDrawn)?.order ?? 1
+        }
+        return ms.filter(\.matchIsFinished).map(\.group.groupOrderID).max() ?? 1
     }
 
     /// Grobe Fehlerkategorie fürs Ereignis – bewusst ohne `localizedDescription`,
@@ -143,7 +182,14 @@ final class AppModel: ObservableObject {
     }
 
     func recompute() {
-        rows = Standings.compute(from: matches, upTo: spieltag, mode: tableMode)
+        if liga.isCup {
+            // K.-o.-System: keine Tabelle, stattdessen die Runden des Wettbewerbs.
+            rows = []
+            cupRounds = CupBracket.rounds(from: matches)
+        } else {
+            cupRounds = []
+            rows = Standings.compute(from: matches, upTo: spieltag, mode: tableMode)
+        }
         matchesOfSpieltag = matches
             .filter { $0.group.groupOrderID == spieltag }
             .sorted { ($0.matchDateTime ?? "") < ($1.matchDateTime ?? "") }
@@ -236,36 +282,56 @@ final class AppModel: ObservableObject {
 
     // MARK: - Export & Druck
 
+    /// Im Pokal gibt es nichts zu exportieren, solange die Runde nicht ausgelost ist.
+    var hasExportableContent: Bool {
+        liga.isCup ? (currentCupRound?.isDrawn ?? false) : !rows.isEmpty
+    }
+
+    private let exportFooter = "Erstellt mit \(AppInfo.name) · Daten: OpenLigaDB"
+
     func exportHTML() {
-        let html = TableExporter.html(
-            title: tableTitle,
-            rows: rows,
-            footerNote: "Erstellt mit \(AppInfo.name) · Daten: OpenLigaDB"
-        )
+        let html: String
+        if liga.isCup, let round = currentCupRound {
+            html = TableExporter.html(title: tableTitle, round: round, footerNote: exportFooter)
+        } else {
+            html = TableExporter.html(title: tableTitle, rows: rows, footerNote: exportFooter)
+        }
         save(text: html, type: .html, defaultName: exportName(ext: "html"))
     }
 
     func copyTable() {
-        guard !rows.isEmpty else { return }
-        let text = TableExporter.plainText(title: tableTitle, rows: rows)
+        guard hasExportableContent else { return }
+        let text: String
+        if liga.isCup, let round = currentCupRound {
+            text = TableExporter.plainText(title: tableTitle, round: round)
+        } else {
+            text = TableExporter.plainText(title: tableTitle, rows: rows)
+        }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
-        status = "Tabelle kopiert"
-        Analytics.signal(.tableCopied)
+        status = liga.isCup ? "Runde kopiert" : "Tabelle kopiert"
+        Analytics.signal(.tableCopied, ["kind": liga.isCup ? "cupRound" : "table"])
     }
 
     func printTable() {
-        Analytics.signal(.tablePrinted)
-        let view = NSHostingView(rootView: PrintableTable(title: tableTitle, rows: rows))
-        view.frame = NSRect(origin: .zero, size: view.fittingSize)
-        let op = NSPrintOperation(view: view)
+        Analytics.signal(.tablePrinted, ["kind": liga.isCup ? "cupRound" : "table"])
+        let root: NSHostingView<AnyView>
+        if liga.isCup, let round = currentCupRound {
+            root = NSHostingView(rootView: AnyView(PrintableCupRound(title: tableTitle, round: round)))
+        } else {
+            root = NSHostingView(rootView: AnyView(PrintableTable(title: tableTitle, rows: rows)))
+        }
+        root.frame = NSRect(origin: .zero, size: root.fittingSize)
+        let op = NSPrintOperation(view: root)
         op.printInfo.horizontalPagination = .fit
         op.run()
     }
 
     private func exportName(ext: String) -> String {
-        "Tabelle_\(liga.rawValue)_\(season)_Spieltag\(spieltag).\(ext)"
+        let period = liga.isCup ? "Runde\(spieltag)" : "Spieltag\(spieltag)"
+        let kind = liga.isCup ? "Pokal" : "Tabelle"
+        return "\(kind)_\(liga.rawValue)_\(season)_\(period).\(ext)"
     }
 
     private func save(text: String, type: UTType, defaultName: String) {

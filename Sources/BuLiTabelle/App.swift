@@ -156,19 +156,19 @@ struct BuLiTabelleApp: App {
                 }
             }
             CommandGroup(after: .pasteboard) {
-                Button("Tabelle kopieren") { model.copyTable() }
+                Button(model.liga.isCup ? "Runde kopieren" : "Tabelle kopieren") { model.copyTable() }
                     .keyboardShortcut("c", modifiers: [.command, .shift])
-                    .disabled(model.rows.isEmpty)
+                    .disabled(!model.hasExportableContent)
             }
             CommandMenu("Spieltag") {
-                Button("Vorheriger Spieltag") { model.prevSpieltag() }
+                Button("Vorherige\(model.liga.isCup ? " Runde" : "r Spieltag")") { model.prevSpieltag() }
                     .keyboardShortcut(.leftArrow, modifiers: .command)
                     .disabled(!model.canGoPrevSpieltag)
-                Button("Nächster Spieltag") { model.nextSpieltag() }
+                Button("Nächste\(model.liga.isCup ? " Runde" : "r Spieltag")") { model.nextSpieltag() }
                     .keyboardShortcut(.rightArrow, modifiers: .command)
                     .disabled(!model.canGoNextSpieltag)
                 Divider()
-                Button("Aktuelle Tabelle") { model.showCurrentTable() }
+                Button(model.liga.isCup ? "Aktuelle Runde" : "Aktuelle Tabelle") { model.showCurrentTable() }
                     .keyboardShortcut("r", modifiers: .command)
             }
         }

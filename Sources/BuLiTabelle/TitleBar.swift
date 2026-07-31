@@ -92,7 +92,7 @@ struct InfoStrip: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text("1. und 2. Bundesliga sowie 3. Liga – jeder Spieltag seit 2004/05.")
+            Text("1. bis 3. Liga und DFB-Pokal – jeder Spieltag und jede Runde seit 2004/05.")
                 .font(.tahoma(11))
                 .foregroundStyle(.black)
                 .lineLimit(1)

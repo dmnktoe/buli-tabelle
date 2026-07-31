@@ -34,7 +34,9 @@ struct ActionColumn: View {
             LeaguePlate(liga: model.liga, season: "Saison \(model.seasonShort)")
 
             GroupCaption(text: "ANSEHEN")
-            XPButton("Aktuelle Tabelle", emphasized: true) { model.showCurrentTable() }
+            XPButton(model.liga.isCup ? "Aktuelle Runde" : "Aktuelle Tabelle", emphasized: true) {
+                model.showCurrentTable()
+            }
             XPButton("Statistiken…") { model.openStats() }
 
             GroupCaption(text: "DATEN")

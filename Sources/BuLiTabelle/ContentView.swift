@@ -38,16 +38,25 @@ struct ContentView: View {
                 ActionColumn()
                 VStack(spacing: 5) {
                     FilterBar()
-                    TableModeBar()
-                    TablePanel()
+                    if model.liga.isCup {
+                        // K.-o.-Runde statt Tabelle. Heim-/Auswärtstabelle gibt es
+                        // hier nicht, und die Paarungen stehen bereits im Panel –
+                        // das Spieltag-Menü darunter wäre nur eine Dopplung.
+                        CupPanel()
+                    } else {
+                        TableModeBar()
+                        TablePanel()
+                    }
                 }
             }
             .padding(6)
 
-            if model.showSpieltagMenu {
-                MatchdayPanel()
+            if !model.liga.isCup {
+                if model.showSpieltagMenu {
+                    MatchdayPanel()
+                }
+                SpieltagMenuBar()
             }
-            SpieltagMenuBar()
             StatusBar()
         }
         .frame(width: 620)

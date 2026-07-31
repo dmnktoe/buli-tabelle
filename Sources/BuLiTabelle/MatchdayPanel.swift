@@ -20,7 +20,7 @@ struct SpieltagMenuBar: View {
             Analytics.signal(.matchdayPanelToggled, ["state": model.showSpieltagMenu ? "open" : "closed"])
         } label: {
             HStack {
-                Text("Spieltag-Menü >>")
+                Text("\(model.liga.periodNoun)-Menü >>")
                     .font(.tahoma(11, bold: true))
                     .foregroundStyle(.black)
                 Spacer()
@@ -89,7 +89,7 @@ struct MatchdayPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("\(model.spieltag). Spieltag – \(model.liga.display)")
+            Text("\(model.spieltag). \(model.liga.periodNoun) – \(model.liga.display)")
                 .font(.tahoma(10, bold: true))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -122,6 +122,9 @@ struct StatusBar: View {
         if let id = model.selectedTeamID,
            let row = model.rows.first(where: { $0.id == id }) {
             return "\(row.team.teamName): Platz \(row.position), \(row.pkt) Punkte"
+        }
+        if model.liga.isCup, let round = model.currentCupRound {
+            return "\(model.liga.display) \(model.seasonString) · \(round.name): \(round.progressText)"
         }
         return "Daten: OpenLigaDB · \(model.liga.display) \(model.seasonString)"
     }

@@ -7,6 +7,8 @@ struct FilterBar: View {
         static let liga: CGFloat = 150
         static let season: CGFloat = 118
         static let spieltag: CGFloat = 118
+        /// Rundennamen wie „Viertelfinale“ brauchen etwas mehr Platz.
+        static let runde: CGFloat = 130
     }
 
     var body: some View {
@@ -31,13 +33,13 @@ struct FilterBar: View {
 
             RetroDropdown(
                 items: Array(1...max(model.maxSpieltag, 1)),
-                display: { "\($0). Spieltag" },
+                display: { model.periodLabel($0) },
                 selection: Binding(
                     get: { model.spieltag },
                     set: { model.jumpToSpieltag($0) }
                 )
             )
-            .frame(width: W.spieltag)
+            .frame(width: model.liga.isCup ? W.runde : W.spieltag)
 
             XPButton("›", fill: false) { model.nextSpieltag() }
                 .disabled(!model.canGoNextSpieltag)

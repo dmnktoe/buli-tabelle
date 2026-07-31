@@ -7,6 +7,34 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [1.2.0] – 2026-07-31
+
+### Hinzugefügt
+
+- **DFB-Pokal** als vierter Wettbewerb in der Ligaauswahl. Der Pokal ist
+  rundenbasiert statt tabellenbasiert, deshalb zeigt die App hier keine Tabelle,
+  sondern die Paarungen der gewählten Runde — von der 1. Runde bis zum Finale.
+  - Der **Sieger** jeder Partie steht fett, der Ausgeschiedene wird abgeblendet.
+    Entscheidet erst die Verlängerung oder das Elfmeterschießen, wird das mit
+    „n. V.“ bzw. „i. E.“ gekennzeichnet und der Spielstand entsprechend gezeigt.
+  - Zwischen den Runden wird **ausgelost**. Eine Runde ohne Paarungen ist deshalb
+    kein Fehler, sondern wird als „Die Auslosung für diese Runde steht noch aus“
+    ausgewiesen.
+  - Der Rundenkopf zeigt den Fortschritt („5 von 8 Spielen gespielt“), nach
+    Abschluss einer Runde stehen die weitergekommenen Mannschaften darunter.
+  - **Kopieren, HTML-Export und Drucken** geben im Pokalmodus die Paarungen der
+    Runde aus statt einer Tabelle.
+  - Das **Menüleisten-Panel** zeigt im Pokalmodus ebenfalls die Runde.
+  - Beim Öffnen springt die App auf die **laufende Runde** — im Pokal liegen
+    zwischen den Runden Wochen, deshalb ist sie interessanter als die zuletzt
+    gespielte.
+
+### Geändert
+
+- Beschriftungen richten sich nach dem Wettbewerb: „Spieltag“ wird im Pokal zu
+  „Runde“, „Aktuelle Tabelle“ zu „Aktuelle Runde“. Heim- und Auswärtstabelle
+  entfallen dort, ebenso die Auf- und Abstiegszonen.
+
 ## [1.1.0] – 2026-07-31
 
 ### Hinzugefügt
@@ -67,6 +95,7 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
   selbst gezeichnet — Luna-Verlauf, schwarze Kopfzeile, Zonenfarben.
   (Ab 1.1.0 durch das Icon-Composer-Icon ersetzt.)
 
-[Unveröffentlicht]: https://github.com/dmnktoe/buli-tabelle/compare/v1.1.0...HEAD
+[Unveröffentlicht]: https://github.com/dmnktoe/buli-tabelle/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/dmnktoe/buli-tabelle/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/dmnktoe/buli-tabelle/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/dmnktoe/buli-tabelle/releases/tag/v1.0.0
