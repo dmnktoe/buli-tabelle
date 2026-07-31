@@ -6,7 +6,7 @@ VERSION=$(grep 'static let version' Sources/BuLiTabelle/Version.swift | sed -E '
 BUILD="${BULI_BUILD:-$(git rev-list --count HEAD 2>/dev/null || grep 'static let build' Sources/BuLiTabelle/Version.swift | sed -E 's/.*"([^"]+)".*/\1/')}"
 
 SU_FEED_URL="${SU_FEED_URL:-https://dmnktoe.github.io/buli-tabelle/appcast.xml}"
-SU_PUBLIC_ED_KEY="${SU_PUBLIC_ED_KEY:-T/oK5ZKpuxdtLAqUraHIQ9vDXYyE9wiPNJI49TG7Kb4=}"
+SU_PUBLIC_ED_KEY="${SU_PUBLIC_ED_KEY:-gxNmaeCPi8fURiL6/sV9o66NstNRtjk9b2SIv2PiO94=}"
 
 SIGN_IDENTITY="${SIGN_IDENTITY:-}"
 

@@ -370,7 +370,7 @@
         .then(function (rel) {
           var tag = rel.tag_name || '';
           var asset = (rel.assets || []).filter(function (a) {
-            return /BuLiTabelle-.*\.zip$/i.test(a.name);|BLT)-.*\.zip$/i.test(a.name);
+            return /(?:BuLiTabelle|BLT)-.*\.zip$/i.test(a.name);
           })[0];
           apply({
             version: tag.replace(/^v/, ''),
