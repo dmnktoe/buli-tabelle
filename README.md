@@ -5,8 +5,8 @@
 [![macOS](https://img.shields.io/badge/macOS-13%2B-D20515?logo=apple&labelColor=1D1D1B)](https://dmnktoe.github.io/buli-tabelle/)
 
 **BuLi Tabelle** zeigt Bundesliga-Tabellen und den DFB-Pokal als native macOS-App
-in Swift & SwiftUI — im Look der frühen 2000er: Luna-Farbverläufe, Tahoma-Schrift
-und 3D-Bevel-Ränder. Ein Stück Fußball-Nostalgie, das echte Live-Daten anzeigt.
+in Swift & SwiftUI — im Liquid-Glass-Look: durchscheinende Flächen über echtem
+Fenster-Blur, Systemschrift, weiche Federn und voller Dunkelmodus.
 
 ## Was die App kann
 
@@ -18,12 +18,12 @@ und 3D-Bevel-Ränder. Ein Stück Fußball-Nostalgie, das echte Live-Daten anzeig
   Runden werden als solche ausgewiesen.
 - **Zeitreise:** Tabelle für jeden Spieltag jeder Saison seit 2004/05 — lokal aus
   den Spielergebnissen berechnet (Punkte, Tordifferenz, erzielte Tore)
-- Farbig markierte **Auf- und Abstiegszonen** (Champions League, Europa League,
-  Relegation, Abstieg)
+- **Auf- und Abstiegszonen** als farbige Balken am Zeilenrand, mit Legende
+  (Champions League, Europa League, Relegation, Abstieg)
 - Ausklappbarer **Spieltag-Bereich** mit allen Paarungen und Ergebnissen
 - **Torjägerliste** der gewählten Saison
 - Tabelle als **HTML exportieren**, **kopieren** oder direkt **drucken**
-- **Menüleisten-Modus:** Das ⚽-Symbol zeigt eine Kompakt-Tabelle im XP-Look.
+- **Menüleisten-Modus:** Das ⚽-Symbol zeigt eine Kompakt-Tabelle.
   Wer das Fenster schließt, behält die App in der Menüleiste (das Dock-Icon
   verschwindet) — „Fenster öffnen" holt sie zurück, „Beenden" beendet wirklich.
   Beides lässt sich in den Einstellungen abschalten.
@@ -33,9 +33,9 @@ und 3D-Bevel-Ränder. Ein Stück Fußball-Nostalgie, das echte Live-Daten anzeig
 
 ## Download
 
-Fertige Builds gibt es auf der **[Downloadseite](https://dmnktoe.github.io/buli-tabelle/)** —
-natürlich ebenfalls in Windows-XP-Optik und automatisch gespeist aus dem neuesten
-Release — oder direkt unter [Releases](https://github.com/dmnktoe/buli-tabelle/releases).
+Fertige Builds gibt es auf der **[Downloadseite](https://dmnktoe.github.io/buli-tabelle/)**
+— automatisch gespeist aus dem neuesten Release — oder direkt unter
+[Releases](https://github.com/dmnktoe/buli-tabelle/releases).
 Die App ist signiert und notarisiert; einfach nach `/Applications` ziehen.
 
 ## Entwicklung
@@ -76,19 +76,24 @@ NOTARY_PROFILE="buli-notary" ./release.sh
 
 ## Unter der Haube
 
-- **SwiftUI mit handgezeichnetem XP-Chrome** (`Theme.swift`, `Bevel.swift`,
-  `Controls.swift`): Bevel-Ränder, Luna-Farbverläufe, Retro-Dropdowns und
-  -Checkboxen
-- **Tahoma** liefert macOS selbst mit (`/System/Library/Fonts/Supplemental`)
+- **Ein Glas-System für alles** (`GlassKit.swift`): `.glass()` legt eine
+  Glasfläche hinter beliebige Inhalte. Ab macOS 26 übernimmt das echte Liquid
+  Glass des Systems (`glassEffect`), darunter tritt eine handgebaute Scheibe aus
+  `Material`, Lichtkante und Schatten an seine Stelle — der Umschaltpunkt steckt
+  an genau einer Stelle im Code
+- **Echter Fenster-Blur:** `NSVisualEffectView` mit `behindWindow` als
+  Untergrund, darüber zwei weiche Farblichter — erst dadurch hat das Glas etwas
+  zum Brechen
+- **Design-Tokens** in `Theme.swift`: Akzent, Zonen- und Ergebnisfarben je einmal
+  für hell und dunkel (`Color.adaptive`), dazu Radien und Federn
+- **Native Fenster-Chrome:** transparente Titelleiste mit
+  `fullSizeContentView` — die Ampel gehört wieder macOS, die App zeichnet keine
+  eigenen Fensterknöpfe mehr
 - **Robuste API-Anbindung:** OpenLigaDB-JSON wird case-unabhängig dekodiert
   (`Models.swift`) und funktioniert daher mit der alten PascalCase- wie der
   neuen camelCase-API
-- **Randloses Fenster:** Der native Titlebar-Bereich wird auf macOS 26 nicht mehr
-  transparent und würde die gezeichnete XP-Titelleiste überdecken — deshalb läuft
-  das Fenster ohne `.titled`-styleMask; Key-/Main-Fähigkeit bekommt die
-  SwiftUI-Fensterklasse per `class_addMethod` nachgerüstet
 - **App-Icon:** `scripts/icon.swift` zeichnet es aus den Bauteilen der App
-  selbst — Luna-Verlauf, schwarze Kopfzeile, Zonenfarben —, `scripts/make-icon.sh`
+  selbst — Farbverlauf, Kopfzeile, Zonenfarben —, `scripts/make-icon.sh`
   baut daraus die `.icns`-Datei. Liegt ein eigenes `Resources/AppIconSource.png`
   vor, hat das Vorrang. Die Icons der Downloadseite zeichnet
   `scripts/make-web-icons.py` (benötigt Pillow) mit demselben Motiv — AppKit gibt
@@ -102,11 +107,16 @@ BULI_SCREENSHOT=/tmp/tabelle.png swift run
 
 Rendert das Hauptfenster nach 2,5 Sekunden in die angegebene PNG-Datei —
 praktisch, um Layout-Probleme ohne Bildschirmaufnahme-Rechte zu untersuchen.
-Standardmäßig scharf in 2× und mittig auf einem generierten 16:9-Hintergrund im
-XP-Look (`Screenshot.swift`). Über Umgebungsvariablen steuerbar:
+Standardmäßig scharf in 2× und mittig auf einem generierten 16:9-Hintergrund
+(`Screenshot.swift`). Über Umgebungsvariablen steuerbar:
 
 - `BULI_SCREENSHOT_SCALE` – Renderfaktor (Standard `2`)
-- `BULI_SCREENSHOT_BG` – `xp` (Luna-Blau, Standard) · `gray` · `none` (nur Fenster)
+- `BULI_SCREENSHOT_BG` – `aurora` (Standard) · `gray` · `none` (nur Fenster)
+
+`cacheDisplay(in:to:)` zeichnet keine Echtzeit-Blur-Ebenen mit. Sobald
+`BULI_SCREENSHOT` gesetzt ist, ersetzt die App die Materialien deshalb durch
+deckende Ersatzflächen (`Theme.capturing`) — das Bild entspricht dann dem, was
+man auf dem Schirm sieht.
 
 Denselben Screenshot nimmt der [Screenshot-Workflow](.github/workflows/screenshot.yml)
 manuell und der Release-Workflow bei jeder Veröffentlichung automatisch auf.

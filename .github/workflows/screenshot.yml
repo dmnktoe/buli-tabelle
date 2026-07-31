@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       background:
-        description: 'Hintergrund: xp (Luna-Blau) | gray | none (nur Fenster)'
-        default: 'xp'
+        description: 'Hintergrund: aurora | gray | none (nur Fenster)'
+        default: 'aurora'
         required: false
       scale:
         description: 'Renderfaktor (Retina), z. B. 2'
@@ -25,7 +25,7 @@ jobs:
       - name: App bauen
         run: swift build
 
-      - name: Screenshot aufnehmen (16:9, XP-Backdrop)
+      - name: Screenshot aufnehmen (16:9, Aurora-Backdrop)
         env:
           BULI_SCREENSHOT_BG: ${{ github.event.inputs.background }}
           BULI_SCREENSHOT_SCALE: ${{ github.event.inputs.scale }}

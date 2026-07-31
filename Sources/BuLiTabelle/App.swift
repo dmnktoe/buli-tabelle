@@ -6,6 +6,11 @@ final class WindowBridge {
     weak var main: NSWindow?
 }
 
+/// Richtet das Hauptfenster ein: native Chrome, transparente Titelleiste,
+/// Inhalt bis unter die Ampel.
+///
+/// Die App bringt keine eigenen Fensterknöpfe mehr mit – Schließen, Minimieren
+/// und Zoomen übernimmt wieder macOS selbst.
 struct WindowConfigurator: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -22,79 +27,36 @@ struct WindowConfigurator: NSViewRepresentable {
                 return
             }
             WindowBridge.shared.main = window
-            guard window.styleMask.contains(.titled) else { return }
             window.isRestorable = false
             window.isReleasedWhenClosed = false
-            window.standardWindowButton(.closeButton)?.isHidden = true
-            window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-            window.standardWindowButton(.zoomButton)?.isHidden = true
             window.tabbingMode = .disallowed
             window.isMovableByWindowBackground = true
-            if #available(macOS 26.0, *) {
-                window.styleMask.remove(.titled)
-                Self.makeKeyable(window)
-            } else {
-                window.styleMask.insert(.fullSizeContentView)
-                window.titlebarAppearsTransparent = true
-                window.titleVisibility = .hidden
-                Self.hideTitlebar(window)
-            }
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            window.titlebarSeparatorStyle = .none
+            window.styleMask.insert(.fullSizeContentView)
             window.hasShadow = true
             window.invalidateShadow()
+            Self.observeClose(window)
             window.makeKeyAndOrderFront(nil)
         }
     }
 
-    private static func makeKeyable(_ window: NSWindow) {
-        guard let cls = object_getClass(window) else { return }
-        let yes = imp_implementationWithBlock(
-            { (_: NSWindow) -> Bool in true } as @convention(block) (NSWindow) -> Bool
-        )
-        class_addMethod(cls, NSSelectorFromString("canBecomeKeyWindow"), yes, "B@:")
-        class_addMethod(cls, NSSelectorFromString("canBecomeMainWindow"), yes, "B@:")
-    }
+    private static var closeObserverKey: UInt8 = 0
 
-    private static var titlebarObserverKey: UInt8 = 0
-
-    private static func titlebarContainer(_ window: NSWindow) -> NSView? {
-        var v = window.standardWindowButton(.closeButton)?.superview
-        while let cur = v {
-            if String(describing: type(of: cur)) == "NSTitlebarContainerView" { return cur }
-            v = cur.superview
-        }
-        return window.contentView?.superview?.subviews.first {
-            String(describing: type(of: $0)) == "NSTitlebarContainerView"
-        }
-    }
-
-    private static func hideTitlebar(_ window: NSWindow) {
-        let apply = { [weak window] in
-            guard let window else { return }
-            window.contentView?.additionalSafeAreaInsets = NSEdgeInsets(top: -28, left: 0, bottom: 0, right: 0)
-            if let container = Self.titlebarContainer(window) {
-                func hideDeep(_ v: NSView) {
-                    v.isHidden = true
-                    v.subviews.forEach(hideDeep)
-                }
-                hideDeep(container)
+    /// Wer das Fenster über die Ampel schließt, während das Menüleisten-Symbol
+    /// aktiv ist, soll die App dort weiterlaufen sehen – ohne Dock-Icon.
+    private static func observeClose(_ window: NSWindow) {
+        guard objc_getAssociatedObject(window, &closeObserverKey) == nil else { return }
+        let token = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: window, queue: .main
+        ) { _ in
+            let defaults = UserDefaults.standard
+            if defaults.bool(forKey: "showMenuBarItem") && defaults.bool(forKey: "keepInMenuBar") {
+                NSApp.setActivationPolicy(.accessory)
             }
         }
-        apply()
-        if let old = objc_getAssociatedObject(window, &titlebarObserverKey) as? [NSObjectProtocol] {
-            old.forEach(NotificationCenter.default.removeObserver)
-        }
-        let names: [NSNotification.Name] = [
-            NSWindow.didBecomeKeyNotification,
-            NSWindow.didUpdateNotification,
-            NSWindow.didResizeNotification,
-        ]
-        let tokens = names.map { name in
-            NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { _ in apply() }
-        }
-        objc_setAssociatedObject(window, &titlebarObserverKey, tokens, .OBJC_ASSOCIATION_RETAIN)
-        for delay in [0.1, 0.3, 0.6, 1.0, 2.0] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: apply)
-        }
+        objc_setAssociatedObject(window, &closeObserverKey, token, .OBJC_ASSOCIATION_RETAIN)
     }
 }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 extension Color {
     init(hex: UInt32) {
@@ -10,65 +11,109 @@ extension Color {
             opacity: 1
         )
     }
-}
 
-/// Windows-XP-„Luna"-Palette und geteilte Stil-Bausteine.
-enum XP {
-    static let face = Color(hex: 0xECE9D8)
-    static let shadow = Color(hex: 0xACA899)
-    static let darkShadow = Color(hex: 0x716F64)
-    static let highlight = Color.white
-
-    static let titleTop = Color(hex: 0x4A8CF7)
-    static let titleMid = Color(hex: 0x1E56C8)
-    static let titleBottom = Color(hex: 0x16419E)
-
-    static let linkBlue = Color(hex: 0x0000EE)
-    static let spieltagGreen = Color(hex: 0x008000)
-
-    static let zoneCL = Color(hex: 0x9FE89F)
-    static let zoneEL = Color(hex: 0xC4F0C4)
-    static let zoneECL = Color(hex: 0xE2F8E2)
-    static let zoneRelegation = Color(hex: 0xFFC8D6)
-    static let zoneAbstieg = Color(hex: 0xFF9E9E)
-
-    static let selectionFill = Color(hex: 0xFFF3C2)
-    static let selectionBorder = Color(hex: 0xE0A000)
-    static let favoriteFill = Color(hex: 0xFFF6DC)
-
-    static let btnInfoGreen = Color(hex: 0xC4EFC0)
-    static let btnBugPink = Color(hex: 0xFFC0CF)
-
-    /// Bundesliga-Rot als Marken-Akzent – dieselbe Farbe wie im App-Icon.
+    /// Farbe, die dem System zwischen Hell- und Dunkelmodus folgt.
     ///
-    /// Bewusst nur in der Fenster-Chrome: Leisten, Trennlinien, Hervorhebungen.
-    /// In der Tabelle selbst hat Rot bereits eine Bedeutung (Abstieg, Niederlage
-    /// in der Formkurve), dort bleibt es den Zonenfarben vorbehalten.
-    static let bundesligaRed = Color(hex: 0xC12A24)
-    static let bundesligaRedDark = Color(hex: 0x8E1F1A)
-
-    /// Blauer Luna-Verlauf für Titel-/Kopfleisten.
-    static let titleGradient = LinearGradient(
-        colors: [titleTop, titleMid, titleBottom],
-        startPoint: .top, endPoint: .bottom
-    )
-}
-
-extension View {
-    /// Titelleiste im Luna-Blau mit dünnem roten Abschluss.
-    func titleBarBackground() -> some View {
-        background(XP.titleGradient)
-            .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
+    /// Glas lebt davon, dass Farben auf hellem und dunklem Untergrund gleich
+    /// gut sitzen – deshalb hat hier jeder Ton zwei Varianten.
+    static func adaptive(light: UInt32, dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            return NSColor(hex: isDark ? dark : light)
+        })
     }
 }
 
+extension NSColor {
+    convenience init(hex: UInt32) {
+        self.init(
+            srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+            green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255,
+            alpha: 1
+        )
+    }
+}
+
+/// Design-Tokens der Oberfläche: Farbe, Geometrie, Bewegung.
+///
+/// Flächen kommen als Material aus `GlassKit`, alles Übrige aus diesem Typ –
+/// so bleibt der Look an einer Stelle einstellbar.
+enum Theme {
+
+    // MARK: - Marke
+
+    /// Bundesliga-Rot als Akzent; im Dunkelmodus heller, damit es auf dunklem
+    /// Glas nicht absäuft.
+    static let accent = Color.adaptive(light: 0xC8102E, dark: 0xFF4F6B)
+    static let accentDeep = Color.adaptive(light: 0x8E0B20, dark: 0xC8102E)
+
+    /// Verlauf für hervorgehobene Knöpfe.
+    static var accentGradient: LinearGradient {
+        LinearGradient(colors: [accent, accentDeep], startPoint: .top, endPoint: .bottom)
+    }
+
+    /// Goldton für den Lieblingsverein.
+    static let favorite = Color.adaptive(light: 0xD79A0B, dark: 0xFFC94D)
+
+    // MARK: - Zonen & Ergebnisse
+
+    static let zoneChampions = Color.adaptive(light: 0x1C6BF0, dark: 0x5C9CFF)
+    static let zoneEuropa = Color.adaptive(light: 0xE07B1F, dark: 0xFFA94D)
+    static let zoneConference = Color.adaptive(light: 0x1F9E6B, dark: 0x4ED6A0)
+    static let zonePromotion = Color.adaptive(light: 0x1F9E6B, dark: 0x4ED6A0)
+    static let zonePlayoff = Color.adaptive(light: 0xC79A16, dark: 0xF0C24B)
+    static let zoneRelegation = Color.adaptive(light: 0xD03B2C, dark: 0xFF6B5A)
+
+    static let win = Color.adaptive(light: 0x22A05B, dark: 0x3FD183)
+    static let draw = Color.adaptive(light: 0x9AA0A6, dark: 0x8E949B)
+    static let loss = Color.adaptive(light: 0xD64431, dark: 0xFF6B5A)
+
+    // MARK: - Linien & Füllungen
+
+    /// Feine Trennlinie auf Glas.
+    static var hairline: Color { Color.primary.opacity(0.08) }
+    /// Füllung für Zeilen unter dem Zeiger.
+    static var hover: Color { Color.primary.opacity(0.06) }
+
+    // MARK: - Geometrie
+
+    enum Radius {
+        static let panel: CGFloat = 18
+        static let card: CGFloat = 14
+        static let control: CGFloat = 10
+        static let row: CGFloat = 8
+    }
+
+    // MARK: - Bewegung
+
+    /// Weiche Feder für Auswahl, Ein- und Ausklappen.
+    static let spring = Animation.spring(response: 0.34, dampingFraction: 0.82)
+    /// Kurzes Feedback für Hover und Druck.
+    static let quick = Animation.easeOut(duration: 0.14)
+
+    // MARK: - Aufnahmemodus
+
+    /// `cacheDisplay(in:to:)` zeichnet keine Echtzeit-Blur-Ebenen mit. Für den
+    /// automatisierten Screenshot treten deshalb deckende Ersatzflächen an die
+    /// Stelle der Materialien, damit das Bild dem echten Fenster entspricht.
+    static let capturing = ProcessInfo.processInfo.environment["BULI_SCREENSHOT"] != nil
+}
+
 extension Font {
-    /// Tahoma (mit macOS mitgeliefert), mit System-Fallback falls nicht vorhanden.
-    static func tahoma(_ size: CGFloat, bold: Bool = false) -> Font {
-        let name = bold ? "Tahoma-Bold" : "Tahoma"
-        if NSFont(name: name, size: size) != nil {
-            return .custom(name, size: size)
-        }
-        return .system(size: size, weight: bold ? .bold : .regular)
+    /// Fließtext und Beschriftungen in der Systemschrift.
+    static func ui(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight)
+    }
+
+    /// Zahlen in der Tabelle: gerundet und mit gleich breiten Ziffern, damit
+    /// Spalten beim Blättern nicht springen.
+    static func stat(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight, design: .rounded).monospacedDigit()
+    }
+
+    /// Titel und Überschriften.
+    static func display(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font {
+        .system(size: size, weight: weight, design: .rounded)
     }
 }

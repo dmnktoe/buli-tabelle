@@ -1,49 +1,87 @@
 import SwiftUI
 
-struct RetroPanel<Content: View>: View {
+/// Schwebendes Glaspanel mit Titelzeile und Schließknopf.
+///
+/// Trägt die eigenen Fenster für Info, Einstellungen und Statistiken – die
+/// Fenster selbst sind randlos, die Form entsteht hier.
+struct GlassPanel<Content: View>: View {
     let title: String
+    var systemImage: String = "sparkles"
     let onClose: () -> Void
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 5) {
-                MiniBallIcon()
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
                 Text(title)
-                    .font(.tahoma(11, bold: true))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
-                Spacer()
-                TitleButton(kind: .close, action: onClose)
+                    .font(.ui(13, .semibold))
+                    .foregroundStyle(Color.primary)
+                Spacer(minLength: 12)
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(GlassButtonStyle(radius: 8, insets: EdgeInsets()))
+                .keyboardShortcut(.cancelAction)
+                .help("Schließen")
             }
-            .padding(.horizontal, 6)
-            .frame(height: 26)
-            .titleBarBackground()
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+
+            Rectangle().fill(Theme.hairline).frame(height: 1)
+
             content
-                .padding(12)
+                .padding(18)
         }
-        .background(XP.face)
-        .bevel()
+        .background {
+            if Theme.capturing {
+                Color.adaptive(light: 0xFAFAFC, dark: 0x232529)
+            } else {
+                VisualEffect(material: .popover, blending: .behindWindow)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.45), .white.opacity(0.06)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        }
     }
 }
 
-struct RetroAlertView: View {
-    let info: RetroAlertInfo
+/// Hinweis- und Fehlerdialog.
+struct AlertPanel: View {
+    let info: AlertInfo
     let onClose: () -> Void
 
     var body: some View {
-        RetroPanel(title: info.title, onClose: onClose) {
-            VStack(spacing: 12) {
-                Text(info.message)
-                    .font(.tahoma(11))
-                    .foregroundStyle(.black)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                XPButton("OK", action: onClose)
-                    .frame(width: 80)
-            }
-            .frame(width: 260)
+        VStack(spacing: 14) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 26))
+                .foregroundStyle(Theme.accent)
+            Text(info.title)
+                .font(.display(15, .semibold))
+                .foregroundStyle(Color.primary)
+            Text(info.message)
+                .font(.ui(12))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            GlassButton("OK", prominent: true, action: onClose)
+                .keyboardShortcut(.defaultAction)
+                .padding(.top, 2)
         }
+        .padding(24)
+        .frame(width: 320)
     }
 }
 
@@ -52,27 +90,39 @@ struct InfoSheet: View {
     let onClose: () -> Void
 
     var body: some View {
-        RetroPanel(title: "Info", onClose: onClose) {
-            VStack(spacing: 10) {
-                LeaguePlate(liga: model.liga, season: "Saison \(model.seasonShort)")
-                    .frame(width: 130)
-                Text("\(AppInfo.name) \(AppInfo.displayVersion)")
-                    .font(.tahoma(12, bold: true))
-                    .foregroundStyle(.black)
+        GlassPanel(title: "Über \(AppInfo.name)", systemImage: "info.circle", onClose: onClose) {
+            VStack(spacing: 12) {
+                LeagueBadge(liga: model.liga)
+                    .scaleEffect(1.6)
+                    .frame(height: 54)
+
+                VStack(spacing: 2) {
+                    Text(AppInfo.name)
+                        .font(.display(17, .semibold))
+                        .foregroundStyle(Color.primary)
+                    Text("Version \(AppInfo.displayVersion)")
+                        .font(.ui(11))
+                        .foregroundStyle(.secondary)
+                }
+
                 Text("""
                 Bundesliga-Tabellen und DFB-Pokal für macOS.
                 Live-Daten, jeder Spieltag und jede Pokalrunde seit 2004/05.
-
-                Daten: OpenLigaDB (www.openligadb.de)
-                © 2026 dmnktoe · Swift & SwiftUI
                 """)
-                .font(.tahoma(11))
-                .foregroundStyle(.black)
+                .font(.ui(12))
+                .foregroundStyle(Color.primary)
                 .multilineTextAlignment(.center)
-                XPButton("OK") { onClose() }
-                    .frame(width: 80)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Text("Daten: OpenLigaDB · © 2026 dmnktoe · Swift & SwiftUI")
+                    .font(.ui(10))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                GlassButton("Fertig", prominent: true, action: onClose)
+                    .keyboardShortcut(.defaultAction)
             }
-            .frame(width: 280)
+            .frame(width: 300)
         }
     }
 }
@@ -81,61 +131,72 @@ struct StatsSheet: View {
     @EnvironmentObject var model: AppModel
     let onClose: () -> Void
 
-    var body: some View {
-        RetroPanel(title: "Statistiken – Torjäger", onClose: onClose) {
-            VStack(spacing: 8) {
-                VStack(spacing: 0) {
-                    HStack {
-                        Text("SPIELER").frame(maxWidth: .infinity, alignment: .leading)
-                        Text("TORE").frame(width: 40, alignment: .trailing)
-                    }
-                    .font(.tahoma(10, bold: true))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .frame(height: 18)
-                    .background(Color.black)
+    private func rankColor(_ index: Int) -> Color {
+        switch index {
+        case 0: return Theme.favorite
+        case 1, 2: return Theme.accent
+        default: return .secondary
+        }
+    }
 
+    var body: some View {
+        GlassPanel(title: "Torjägerliste", systemImage: "chart.bar.xaxis", onClose: onClose) {
+            VStack(spacing: 12) {
+                Text("\(model.liga.display) · Saison \(model.seasonShort)")
+                    .font(.ui(11))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 0) {
                     if model.loadingStats {
-                        Text("Lade Torjägerliste…")
-                            .font(.tahoma(11))
-                            .foregroundStyle(XP.darkShadow)
+                        LoadingIndicator(text: "Lade Torjägerliste …")
                             .frame(maxWidth: .infinity)
-                            .frame(height: 60)
+                            .frame(height: 120)
                     } else if model.goalgetters.isEmpty {
-                        Text("Keine Daten verfügbar.")
-                            .font(.tahoma(11))
-                            .foregroundStyle(XP.darkShadow)
+                        EmptyStateView(systemImage: "soccerball", text: "Keine Daten verfügbar.")
                             .frame(maxWidth: .infinity)
-                            .frame(height: 60)
+                            .frame(height: 120)
                     } else {
                         ScrollView {
                             VStack(spacing: 0) {
-                                ForEach(Array(model.goalgetters.prefix(20).enumerated()), id: \.element.id) { i, g in
-                                    HStack {
-                                        Text("\(i + 1). \(g.goalGetterName ?? "?")")
+                                ForEach(Array(model.goalgetters.prefix(20).enumerated()), id: \.element.id) { index, getter in
+                                    HStack(spacing: 10) {
+                                        Text("\(index + 1)")
+                                            .font(.stat(11, .semibold))
+                                            .foregroundStyle(rankColor(index))
+                                            .frame(width: 20, alignment: .trailing)
+                                        Text(getter.goalGetterName ?? "?")
+                                            .font(.ui(12))
+                                            .foregroundStyle(Color.primary)
                                             .lineLimit(1)
                                             .frame(maxWidth: .infinity, alignment: .leading)
-                                        Text("\(g.goalCount ?? 0)")
-                                            .frame(width: 40, alignment: .trailing)
+                                        Text("\(getter.goalCount ?? 0)")
+                                            .font(.stat(12, .semibold))
+                                            .foregroundStyle(Color.primary)
+                                            .frame(width: 28, alignment: .trailing)
                                     }
-                                    .font(.tahoma(11))
-                                    .foregroundStyle(.black)
-                                    .padding(.horizontal, 6)
-                                    .frame(height: 19)
-                                    .background(i % 2 == 0 ? Color.white : Color(hex: 0xF4F2E8))
+                                    .padding(.horizontal, 12)
+                                    .frame(height: 28)
+                                    .overlay(alignment: .bottom) {
+                                        if index < min(model.goalgetters.count, 20) - 1 {
+                                            Rectangle().fill(Theme.hairline)
+                                                .frame(height: 1)
+                                                .padding(.horizontal, 12)
+                                        }
+                                    }
                                 }
                             }
                         }
-                        .frame(height: 240)
+                        .frame(height: 260)
                     }
                 }
-                .background(Color.white)
-                .bevel(sunken: true)
+                .padding(.vertical, 4)
+                .glass(.card, radius: Theme.Radius.card)
 
-                XPButton("Schließen") { onClose() }
-                    .frame(width: 90)
+                GlassButton("Fertig", prominent: true, action: onClose)
+                    .keyboardShortcut(.defaultAction)
             }
-            .frame(width: 300)
+            .frame(width: 320)
         }
     }
 }
@@ -155,46 +216,49 @@ struct SettingsSheet: View {
         Analytics.signal(.settingChanged, ["key": key, "value": value ? "on" : "off"])
     }
 
+    private func section(_ title: String) -> some View {
+        Text(title)
+            .font(.ui(10, .semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     var body: some View {
-        RetroPanel(title: "Einstellungen", onClose: onClose) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Darstellung")
-                    .font(.tahoma(11, bold: true))
-                    .foregroundStyle(.black)
-                Toggle("Auf-/Abstiegszonen einfärben", isOn: $zoneColors)
-                    .toggleStyle(XPCheckboxStyle())
-                Toggle("Vereinswappen anzeigen", isOn: $showLogos)
-                    .toggleStyle(XPCheckboxStyle())
-                Toggle("Formkurve (letzte 5) anzeigen", isOn: $showForm)
-                    .toggleStyle(XPCheckboxStyle())
+        GlassPanel(title: "Einstellungen", systemImage: "gearshape", onClose: onClose) {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    section("Darstellung")
+                    Toggle("Auf- und Abstiegszonen einfärben", isOn: $zoneColors)
+                    Toggle("Vereinswappen anzeigen", isOn: $showLogos)
+                    Toggle("Formkurve der letzten fünf Spiele", isOn: $showForm)
+                }
 
-                Text("Menüleiste")
-                    .font(.tahoma(11, bold: true))
-                    .foregroundStyle(.black)
-                    .padding(.top, 4)
-                Toggle("Symbol in der Menüleiste anzeigen", isOn: $showMenuBarItem)
-                    .toggleStyle(XPCheckboxStyle())
-                Toggle("Beim Schließen in der Menüleiste weiterlaufen", isOn: $keepInMenuBar)
-                    .toggleStyle(XPCheckboxStyle())
-                    .disabled(!showMenuBarItem)
-                    .opacity(showMenuBarItem ? 1 : 0.45)
+                VStack(alignment: .leading, spacing: 8) {
+                    section("Menüleiste")
+                    Toggle("Symbol in der Menüleiste anzeigen", isOn: $showMenuBarItem)
+                    Toggle("Beim Schließen in der Menüleiste weiterlaufen", isOn: $keepInMenuBar)
+                        .disabled(!showMenuBarItem)
+                        .opacity(showMenuBarItem ? 1 : 0.45)
+                }
 
-                Text("Datenschutz")
-                    .font(.tahoma(11, bold: true))
-                    .foregroundStyle(.black)
-                    .padding(.top, 4)
-                Toggle("Anonyme Nutzungsstatistik senden", isOn: $sendAnalytics)
-                    .toggleStyle(XPCheckboxStyle())
-                Text("Zählt nur anonym die Zahl der Nutzer – keine personenbezogenen Daten, kein Tracking. Änderung wirkt beim nächsten Start.")
-                    .font(.tahoma(10))
-                    .foregroundStyle(XP.darkShadow)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 8) {
+                    section("Datenschutz")
+                    Toggle("Anonyme Nutzungsstatistik senden", isOn: $sendAnalytics)
+                    Text("Zählt nur anonym die Zahl der Nutzer – keine personenbezogenen Daten, kein Tracking. Änderung wirkt beim nächsten Start.")
+                        .font(.ui(10))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-                XPButton("OK") { onClose() }
-                    .frame(width: 80)
-                    .frame(maxWidth: .infinity)
+                GlassButton("Fertig", prominent: true, action: onClose)
+                    .keyboardShortcut(.defaultAction)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
-            .frame(width: 250)
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .font(.ui(12))
+            .frame(width: 300)
             .onChange(of: zoneColors) { track("zoneColors", $0) }
             .onChange(of: showLogos) { track("showLogos", $0) }
             .onChange(of: showForm) { track("showForm", $0) }

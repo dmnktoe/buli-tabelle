@@ -1,18 +1,18 @@
 import AppKit
 
 /// Nimmt das Hauptfenster scharf (2×) auf und setzt es – je nach Stil – mittig
-/// auf einen generierten 16:9-Hintergrund im XP-Look. Gesteuert über Umgebungs-
-/// variablen, damit CI/`swift run` das Bild ohne Bildschirmaufnahme erzeugen können:
+/// auf einen generierten 16:9-Hintergrund. Gesteuert über Umgebungsvariablen,
+/// damit CI/`swift run` das Bild ohne Bildschirmaufnahme erzeugen können:
 ///
 /// - `BULI_SCREENSHOT`        Zielpfad der PNG-Datei (aktiviert die Aufnahme).
 /// - `BULI_SCREENSHOT_SCALE`  Renderfaktor, Standard `2` (Retina-scharf).
-/// - `BULI_SCREENSHOT_BG`     `xp` (Luna-Blau, Standard) · `gray` · `none` (nur Fenster).
+/// - `BULI_SCREENSHOT_BG`     `aurora` (Standard) · `gray` · `none` (nur Fenster).
 enum ScreenshotComposer {
     static func scheduleIfRequested() {
         guard let path = ProcessInfo.processInfo.environment["BULI_SCREENSHOT"] else { return }
         let env = ProcessInfo.processInfo.environment
         let scale = env["BULI_SCREENSHOT_SCALE"].flatMap(Double.init).map { CGFloat($0) } ?? 2
-        let style = env["BULI_SCREENSHOT_BG"] ?? "xp"
+        let style = env["BULI_SCREENSHOT_BG"] ?? "aurora"
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             guard let window = NSApp.windows.first(where: { $0.frame.width > 500 }),
                   let frameView = window.contentView?.superview else { return }
@@ -82,17 +82,38 @@ enum ScreenshotComposer {
         return canvas
     }
 
+    /// Backdrop hinter dem Fenster. „aurora“ nimmt die Akzentfarben der App auf,
+    /// damit das durchscheinende Glas etwas zum Brechen hat.
     private static func drawBackground(style: String, in rect: NSRect) {
-        let colors: [NSColor]
         if style == "gray" {
-            colors = [NSColor(srgbRed: 0.94, green: 0.94, blue: 0.95, alpha: 1),
-                      NSColor(srgbRed: 0.82, green: 0.83, blue: 0.86, alpha: 1)]
-        } else { // "xp" – helle Luna-Blau-Anmutung, passend zur Titelleiste
-            colors = [NSColor(srgbRed: 0.85, green: 0.91, blue: 0.99, alpha: 1),
-                      NSColor(srgbRed: 0.60, green: 0.73, blue: 0.92, alpha: 1),
-                      NSColor(srgbRed: 0.40, green: 0.55, blue: 0.83, alpha: 1)]
+            NSGradient(colors: [
+                NSColor(srgbRed: 0.94, green: 0.94, blue: 0.95, alpha: 1),
+                NSColor(srgbRed: 0.82, green: 0.83, blue: 0.86, alpha: 1),
+            ])?.draw(in: rect, angle: -90)  // erste Farbe oben
+            return
         }
-        NSGradient(colors: colors)?.draw(in: rect, angle: -90) // erste Farbe oben
+
+        NSGradient(colors: [
+            NSColor(srgbRed: 0.09, green: 0.10, blue: 0.16, alpha: 1),
+            NSColor(srgbRed: 0.16, green: 0.13, blue: 0.24, alpha: 1),
+            NSColor(srgbRed: 0.07, green: 0.08, blue: 0.12, alpha: 1),
+        ])?.draw(in: rect, angle: -90)
+
+        // Zwei weiche Lichter – Markenrot oben links, Blau unten rechts.
+        glow(NSColor(srgbRed: 0.78, green: 0.06, blue: 0.18, alpha: 0.55),
+             at: NSPoint(x: rect.minX + rect.width * 0.18, y: rect.maxY - rect.height * 0.12),
+             radius: rect.width * 0.45)
+        glow(NSColor(srgbRed: 0.11, green: 0.42, blue: 0.94, alpha: 0.40),
+             at: NSPoint(x: rect.maxX - rect.width * 0.12, y: rect.minY + rect.height * 0.10),
+             radius: rect.width * 0.42)
+    }
+
+    private static func glow(_ color: NSColor, at center: NSPoint, radius: CGFloat) {
+        NSGradient(colors: [color, color.withAlphaComponent(0)])?.draw(
+            fromCenter: center, radius: 0,
+            toCenter: center, radius: radius,
+            options: []
+        )
     }
 
     private static func bitmap(width: CGFloat, height: CGFloat, scale: CGFloat) -> NSBitmapImageRep? {

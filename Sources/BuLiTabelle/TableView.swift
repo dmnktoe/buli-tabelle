@@ -1,41 +1,47 @@
 import SwiftUI
 
 enum Col {
-    static let platz: CGFloat = 46
-    static let icon: CGFloat = 16
-    static let sp: CGFloat = 28
-    static let sun: CGFloat = 22
-    static let tore: CGFloat = 50
-    static let diff: CGFloat = 34
-    static let pkt: CGFloat = 30
-    static let form: CGFloat = 48
+    static let zone: CGFloat = 3
+    static let platz: CGFloat = 26
+    static let icon: CGFloat = 20
+    static let sp: CGFloat = 30
+    static let sun: CGFloat = 24
+    static let tore: CGFloat = 52
+    static let diff: CGFloat = 38
+    static let pkt: CGFloat = 34
+    static let form: CGFloat = 56
 }
 
 extension MatchOutcome {
     var color: Color {
         switch self {
-        case .win: return Color(hex: 0x3AA53A)
-        case .draw: return Color(hex: 0xB8B49E)
-        case .loss: return Color(hex: 0xD64431)
+        case .win: return Theme.win
+        case .draw: return Theme.draw
+        case .loss: return Theme.loss
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .win: return "Sieg"
+        case .draw: return "Unentschieden"
+        case .loss: return "Niederlage"
         }
     }
 }
 
-/// Kleine Ergebnis-Kästchen der letzten (bis zu 5) Spiele – Grün/Grau/Rot.
+/// Formkurve der letzten (bis zu fünf) Spiele als kleine Pillen.
 struct FormDots: View {
     let form: [MatchOutcome]
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             Spacer(minLength: 0)
             ForEach(Array(form.enumerated()), id: \.offset) { _, outcome in
-                RoundedRectangle(cornerRadius: 1.5)
+                Capsule(style: .continuous)
                     .fill(outcome.color)
-                    .frame(width: 7, height: 7)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 1.5)
-                            .strokeBorder(Color.black.opacity(0.18), lineWidth: 0.5)
-                    )
+                    .frame(width: 6, height: 6)
+                    .help(outcome.label)
             }
         }
         .frame(width: Col.form, alignment: .trailing)
@@ -45,35 +51,37 @@ struct FormDots: View {
 struct TableHeader: View {
     @AppStorage("showForm") private var showForm = true
 
-    private func head(_ t: String, _ w: CGFloat) -> some View {
-        Text(t).frame(width: w, alignment: .trailing)
+    private func head(_ title: String, _ width: CGFloat) -> some View {
+        Text(title).frame(width: width, alignment: .trailing)
     }
 
     var body: some View {
         HStack(spacing: 0) {
-            Text("PLATZ")
-                .padding(.leading, 5)
-                .frame(width: Col.platz + 5, alignment: .leading)
-            Text("MANNSCHAFT")
-                .padding(.leading, Col.icon + 8)
+            Color.clear.frame(width: Col.zone)
+            Text("#")
+                .padding(.leading, 8)
+                .frame(width: Col.platz + 8, alignment: .leading)
+            Text("Mannschaft")
+                .padding(.leading, Col.icon + 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            head("SP", Col.sp)
+            head("Sp", Col.sp)
             head("S", Col.sun)
             head("U", Col.sun)
             head("N", Col.sun)
-            head("TORE", Col.tore)
-            head("DIFF", Col.diff)
-            head("PKT", Col.pkt)
+            head("Tore", Col.tore)
+            head("Diff", Col.diff)
+            head("Pkt", Col.pkt)
             if showForm {
-                head("FORM", Col.form)
+                head("Form", Col.form)
             }
         }
-        .padding(.trailing, 5)
-        .font(.tahoma(10, bold: true))
-        .foregroundStyle(.white)
-        .frame(height: 20)
-        .background(Color.black)
-        .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
+        .font(.ui(10, .semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 12)
+        .frame(height: 28)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.hairline).frame(height: 1)
+        }
     }
 }
 
@@ -86,77 +94,108 @@ struct TableRowView: View {
 
     let row: TableRow
     let teamCount: Int
+    var isLast = false
+
+    @State private var hovering = false
 
     private var isSelected: Bool { model.selectedTeamID == row.id }
     private var isFavorite: Bool { favoriteTeam == row.id }
+    private var zone: LeagueZone? { model.liga.zone(position: row.position, teamCount: teamCount) }
 
-    private var rowBackground: Color {
-        if isSelected { return XP.selectionFill }
-        if zoneColors, let c = model.liga.zoneColor(position: row.position, teamCount: teamCount) {
-            return c
-        }
-        if isFavorite { return XP.favoriteFill }
-        return .white
+    private func cell(_ text: String, _ width: CGFloat,
+                      weight: Font.Weight = .regular,
+                      muted: Bool = false) -> some View {
+        Text(text)
+            .font(.stat(12, weight))
+            .foregroundStyle(muted ? Color.secondary : Color.primary)
+            .frame(width: width, alignment: .trailing)
     }
 
-    private func cell(_ t: String, _ w: CGFloat, bold: Bool = false) -> some View {
-        Text(t)
-            .font(.tahoma(11, bold: bold))
-            .frame(width: w, alignment: .trailing)
+    /// Farbiger Balken der Auf-/Abstiegszone am linken Zeilenrand.
+    @ViewBuilder
+    private var zoneBar: some View {
+        if zoneColors, let zone {
+            Capsule(style: .continuous)
+                .fill(zone.color)
+                .frame(width: Col.zone, height: 20)
+                .help(zone.label)
+        } else {
+            Color.clear.frame(width: Col.zone)
+        }
+    }
+
+    @ViewBuilder
+    private var rowBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+        if isSelected {
+            shape.fill(Theme.accent.opacity(0.16))
+                .overlay(shape.strokeBorder(Theme.accent.opacity(0.55), lineWidth: 1))
+        } else if hovering {
+            shape.fill(Theme.hover)
+        } else if isFavorite {
+            shape.fill(Theme.favorite.opacity(0.14))
+        } else if zoneColors, let zone {
+            shape.fill(zone.color.opacity(0.07))
+        }
     }
 
     var body: some View {
         HStack(spacing: 0) {
-            HStack(spacing: 6) {
-                Circle().fill(Color.black).frame(width: 7, height: 7)
-                Text("\(row.position)").font(.tahoma(11))
-            }
-            .padding(.leading, 5)
-            .frame(width: Col.platz + 5, alignment: .leading)
+            zoneBar
+            Text("\(row.position)")
+                .font(.stat(12, .medium))
+                .foregroundStyle(.secondary)
+                .padding(.leading, 8)
+                .frame(width: Col.platz + 8, alignment: .leading)
 
             if showLogos {
-                TeamIconView(urlString: row.team.teamIconUrl,
-                             fallback: row.team.displayShort)
+                TeamIconView(urlString: row.team.teamIconUrl, fallback: row.team.displayShort)
+            } else {
+                Color.clear.frame(width: Col.icon)
             }
-            if isFavorite {
-                Text("★")
-                    .font(.tahoma(9))
-                    .foregroundStyle(XP.selectionBorder)
-                    .padding(.leading, 8)
-            }
-            Text(row.team.teamName)
-                .font(.tahoma(11, bold: isFavorite))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .padding(.leading, isFavorite ? 3 : 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-            cell("\(row.sp)", Col.sp)
-            cell("\(row.s)", Col.sun)
-            cell("\(row.u)", Col.sun)
-            cell("\(row.n)", Col.sun)
+            HStack(spacing: 4) {
+                Text(row.team.teamName)
+                    .font(.ui(13, isFavorite ? .semibold : .regular))
+                    .foregroundStyle(Color.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if isFavorite {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(Theme.favorite)
+                }
+            }
+            .padding(.leading, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            cell("\(row.sp)", Col.sp, muted: true)
+            cell("\(row.s)", Col.sun, muted: true)
+            cell("\(row.u)", Col.sun, muted: true)
+            cell("\(row.n)", Col.sun, muted: true)
             cell("\(row.tore):\(row.gegentore)", Col.tore)
-            cell("\(row.diff)", Col.diff)
-            cell("\(row.pkt)", Col.pkt, bold: true)
+            cell(row.diff > 0 ? "+\(row.diff)" : "\(row.diff)", Col.diff, muted: true)
+            cell("\(row.pkt)", Col.pkt, weight: .bold)
             if showForm {
                 FormDots(form: row.form)
             }
         }
-        .padding(.trailing, 5)
-        .foregroundStyle(.black)
-        .frame(height: 22)
-        .background(rowBackground)
+        .padding(.horizontal, 12)
+        .frame(height: 32)
+        .background { rowBackground.padding(.horizontal, 6) }
         .overlay(alignment: .bottom) {
-            Color(hex: 0xE4E2D8).frame(height: 1)
+            if !isLast {
+                Rectangle()
+                    .fill(Theme.hairline)
+                    .frame(height: 1)
+                    .padding(.horizontal, 12)
+                    .opacity(hovering || isSelected ? 0 : 1)
+            }
         }
-        .overlay(
-            isSelected
-                ? RoundedRectangle(cornerRadius: 3)
-                    .strokeBorder(XP.selectionBorder, lineWidth: 1.5)
-                    .padding(1)
-                : nil
-        )
         .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .animation(Theme.quick, value: hovering)
+        .animation(Theme.spring, value: isSelected)
         .onTapGesture {
             model.selectedTeamID = isSelected ? nil : row.id
             if !isSelected { Analytics.signal(.teamSelected) }
@@ -168,7 +207,7 @@ struct TableRowView: View {
                     Analytics.signal(.favoriteCleared)
                 }
             } else {
-                Button("★ Als Lieblingsverein festlegen") {
+                Button("Als Lieblingsverein festlegen") {
                     favoriteTeam = row.id
                     Analytics.signal(.favoriteSet)
                 }
@@ -186,23 +225,51 @@ struct TablePanel: View {
             if model.rows.isEmpty {
                 Group {
                     if model.isLoading {
-                        XPLoadingIndicator(text: model.status)
+                        LoadingIndicator(text: model.status)
                     } else {
-                        Text(model.status)
-                            .font(.tahoma(11))
-                            .foregroundStyle(XP.darkShadow)
+                        EmptyStateView(systemImage: "tablecells", text: model.status)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 120)
+                .frame(height: 140)
             } else {
-                ForEach(model.rows) { row in
-                    TableRowView(row: row, teamCount: model.rows.count)
+                ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
+                    TableRowView(
+                        row: row,
+                        teamCount: model.rows.count,
+                        isLast: index == model.rows.count - 1
+                    )
                 }
             }
         }
-        .background(Color.white)
-        .bevel(sunken: true)
+        .padding(.vertical, 4)
+        .glass(.card, radius: Theme.Radius.card)
+    }
+}
+
+/// Legende der Auf- und Abstiegszonen unter der Tabelle.
+struct ZoneLegend: View {
+    let liga: Liga
+    let teamCount: Int
+
+    var body: some View {
+        let zones = liga.zones(teamCount: teamCount)
+        if !zones.isEmpty {
+            HStack(spacing: 12) {
+                ForEach(zones, id: \.self) { zone in
+                    HStack(spacing: 5) {
+                        Capsule(style: .continuous)
+                            .fill(zone.color)
+                            .frame(width: 3, height: 10)
+                        Text(zone.label)
+                            .font(.ui(10))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 4)
+        }
     }
 }
 

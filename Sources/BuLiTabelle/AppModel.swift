@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-struct RetroAlertInfo: Identifiable {
+struct AlertInfo: Identifiable {
     let id = UUID()
     let title: String
     let message: String
@@ -43,7 +43,7 @@ final class AppModel: ObservableObject {
     @Published var selectedTeamID: Int?
     @Published var status = "Fertig"
     @Published var showSpieltagMenu = false
-    @Published var alert: RetroAlertInfo?
+    @Published var alert: AlertInfo?
     @Published private(set) var cupRounds: [CupRound] = []
     @Published private(set) var goalgetters: [OLGoalGetter] = []
     @Published private(set) var loadingStats = false
@@ -145,7 +145,7 @@ final class AppModel: ObservableObject {
                 "season": String(season),
                 "reason": Self.failureReason(error),
             ])
-            alert = RetroAlertInfo(
+            alert = AlertInfo(
                 title: "Fehler",
                 message: "Daten konnten nicht geladen werden.\n\n\(error.localizedDescription)"
             )
@@ -263,7 +263,7 @@ final class AppModel: ObservableObject {
 
     func checkForUpdate() {
         Analytics.signal(.updateCheckRequested, ["mode": "unavailable"])
-        alert = RetroAlertInfo(
+        alert = AlertInfo(
             title: "Update suchen",
             message: "\(AppInfo.name) \(AppInfo.displayVersion)\n\nAuto-Updates sind nur in der veröffentlichten App aktiv."
         )
@@ -344,7 +344,7 @@ final class AppModel: ObservableObject {
                 status = "Exportiert: \(url.lastPathComponent)"
                 Analytics.signal(.tableExported, ["format": type.preferredFilenameExtension ?? "unknown"])
             } catch {
-                alert = RetroAlertInfo(title: "Fehler", message: "Export fehlgeschlagen.\n\(error.localizedDescription)")
+                alert = AlertInfo(title: "Fehler", message: "Export fehlgeschlagen.\n\(error.localizedDescription)")
             }
         }
     }

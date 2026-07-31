@@ -4,65 +4,59 @@ struct TableModeBar: View {
     @EnvironmentObject var model: AppModel
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(TableMode.allCases) { mode in
-                let active = model.tableMode == mode
-                Button {
-                    model.tableMode = mode
-                } label: {
-                    Text(mode.display)
-                        .font(.tahoma(11, bold: active))
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 20)
-                        .background(active ? Color.white : XP.face)
-                        .bevel(sunken: active)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
+        GlassSegmented(
+            items: TableMode.allCases,
+            display: { $0.display },
+            selection: $model.tableMode
+        )
     }
 }
 
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
+    @AppStorage("zoneColors") private var zoneColors = true
 
     var body: some View {
         VStack(spacing: 0) {
-            TitleBar()
-            InfoStrip()
-            Color(hex: 0xC9C5B2).frame(height: 1)
+            // Streifen für die Fenster-Ampel. Der Inhalt reicht bis unter die
+            // Titelleiste, damit das Glas durchgehend ist – die Höhe wird hier
+            // bewusst selbst reserviert statt über die Safe Area.
+            Color.clear.frame(height: 28)
 
-            HStack(alignment: .top, spacing: 6) {
-                ActionColumn()
-                VStack(spacing: 5) {
-                    FilterBar()
-                    if model.liga.isCup {
-                        // K.-o.-Runde statt Tabelle. Heim-/Auswärtstabelle gibt es
-                        // hier nicht, und die Paarungen stehen bereits im Panel –
-                        // das Spieltag-Menü darunter wäre nur eine Dopplung.
-                        CupPanel()
-                    } else {
-                        TableModeBar()
-                        TablePanel()
+            HeaderBar()
+
+            VStack(spacing: 10) {
+                FilterBar()
+
+                if model.liga.isCup {
+                    // K.-o.-Runde statt Tabelle: Heim-/Auswärtstabelle gibt es
+                    // hier nicht, und die Paarungen stehen bereits im Panel –
+                    // der Spieltag-Bereich darunter wäre nur eine Dopplung.
+                    CupPanel()
+                } else {
+                    HStack(spacing: 0) {
+                        TableModeBar().frame(width: 260)
+                        Spacer(minLength: 0)
                     }
+                    TablePanel()
+                    if zoneColors && !model.rows.isEmpty {
+                        ZoneLegend(liga: model.liga, teamCount: model.rows.count)
+                    }
+                    MatchdaySection()
                 }
             }
-            .padding(6)
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            .padding(.bottom, 12)
 
-            if !model.liga.isCup {
-                if model.showSpieltagMenu {
-                    MatchdayPanel()
-                }
-                SpieltagMenuBar()
-            }
             StatusBar()
         }
-        .frame(width: 620)
-        .background(XP.face)
+        .frame(width: 720)
+        .background(WindowBackdrop().ignoresSafeArea())
+        .animation(Theme.spring, value: model.liga)
+        .animation(Theme.spring, value: model.showSpieltagMenu)
         .sheet(item: $model.alert) { info in
-            RetroAlertView(info: info) { model.alert = nil }
+            AlertPanel(info: info) { model.alert = nil }
         }
     }
 }

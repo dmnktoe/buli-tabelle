@@ -13,18 +13,20 @@ DOCS = Path(__file__).resolve().parent.parent / "docs"
 BASE = 512
 SUPERSAMPLE = 4
 
-LUNA_TOP = (74, 140, 247)
-LUNA_MID = (30, 86, 200)
-LUNA_BOTTOM = (22, 65, 158)
+ACCENT_TOP = (216, 27, 58)
+ACCENT_MID = (200, 16, 46)
+ACCENT_BOTTOM = (142, 11, 32)
 
-ZONE_CL = (159, 232, 159)
-ZONE_RELEGATION = (255, 200, 214)
-ZONE_ABSTIEG = (255, 158, 158)
-SEPARATOR = (228, 226, 216)
-BAR_INK = (46, 46, 46)
-CARD_BORDER = (113, 111, 100)
+ZONE_CHAMPIONS = (28, 107, 240)
+ZONE_PLAYOFF = (199, 154, 22)
+ZONE_RELEGATION = (208, 59, 44)
+SEPARATOR = (232, 232, 236)
+BAR_INK = (61, 61, 61)
+HEAD_INK = (107, 107, 107)
+CARD_EDGE = (255, 255, 255)
 
-ROW_FILLS = [ZONE_CL, (255, 255, 255), (255, 255, 255), ZONE_RELEGATION, ZONE_ABSTIEG]
+# Zone je Zeile – None heißt: kein Balken, wie im Mittelfeld der Tabelle.
+ROW_ZONES = [ZONE_CHAMPIONS, None, None, ZONE_PLAYOFF, ZONE_RELEGATION]
 
 
 def lerp(a, b, t):
@@ -46,45 +48,56 @@ def draw_icon(size):
     for y in range(gradient.height):
         t = y / max(gradient.height - 1, 1)
         if t <= 0.52:
-            color = lerp(LUNA_TOP, LUNA_MID, t / 0.52)
+            color = lerp(ACCENT_TOP, ACCENT_MID, t / 0.52)
         else:
-            color = lerp(LUNA_MID, LUNA_BOTTOM, (t - 0.52) / 0.48)
+            color = lerp(ACCENT_MID, ACCENT_BOTTOM, (t - 0.52) / 0.48)
         gradient.putpixel((0, y), color)
     gradient = gradient.resize((x1 - x0, gradient.height))
 
     mask = Image.new("L", (s, s), 0)
-    ImageDraw.Draw(mask).rounded_rectangle(plate, radius=90 * k, fill=255)
+    ImageDraw.Draw(mask).rounded_rectangle(plate, radius=112 * k, fill=255)
     canvas.paste(gradient, (x0, y0), mask.crop(plate))
 
     card = (104 * k, 116 * k, (104 + 304) * k, (116 + 280) * k)
     row_h = 46 * k
     head_h = (card[3] - card[1]) - 5 * row_h
 
-    draw.rectangle(card, fill=(255, 255, 255))
-    head = (card[0], card[1], card[2], card[1] + head_h)
-    draw.rectangle(head, fill=(0, 0, 0))
+    # Glaskarte: helle Fläche mit weicher Kante statt hartem Rahmen.
+    draw.rounded_rectangle(card, radius=34 * k, fill=(255, 255, 255, 247))
 
+    head = (card[0], card[1], card[2], card[1] + head_h)
     head_mid = (head[1] + head[3]) / 2
-    for x, w in ((22, 46), (82, 96), (304 - 66, 44)):
+    for x, w in ((26, 40), (84, 90), (304 - 66, 40)):
         x0 = card[0] + x * k
         draw.rounded_rectangle(
-            (x0, head_mid - 5 * k, x0 + w * k, head_mid + 5 * k),
-            radius=5 * k,
-            fill=(255, 255, 255, 217),
+            (x0, head_mid - 4 * k, x0 + w * k, head_mid + 4 * k),
+            radius=4 * k,
+            fill=HEAD_INK,
         )
 
-    for index, fill in enumerate(ROW_FILLS):
+    for index, zone in enumerate(ROW_ZONES):
         top = head[3] + index * row_h
         row = (card[0], top, card[2], top + row_h)
-        draw.rectangle(row, fill=fill)
-        draw.rectangle((row[0], row[3] - 2 * k, row[2], row[3]), fill=SEPARATOR)
-
         mid = (row[1] + row[3]) / 2
+
+        if index < len(ROW_ZONES) - 1:
+            draw.rectangle(
+                (row[0] + 20 * k, row[3] - 2 * k, row[2] - 20 * k, row[3]), fill=SEPARATOR
+            )
+
+        # Zonenbalken am Zeilenrand statt flächiger Einfärbung.
+        if zone:
+            draw.rounded_rectangle(
+                (row[0] + 14 * k, mid - 13 * k, row[0] + 20 * k, mid + 13 * k),
+                radius=3 * k,
+                fill=zone,
+            )
+
         draw.ellipse(
-            (row[0] + 22 * k, mid - 7 * k, row[0] + 36 * k, mid + 7 * k), fill=BAR_INK
+            (row[0] + 32 * k, mid - 7 * k, row[0] + 46 * k, mid + 7 * k), fill=BAR_INK
         )
         draw.rounded_rectangle(
-            (row[0] + 56 * k, mid - 6 * k, row[0] + 178 * k, mid + 6 * k),
+            (row[0] + 60 * k, mid - 6 * k, row[0] + 178 * k, mid + 6 * k),
             radius=6 * k,
             fill=BAR_INK,
         )
@@ -94,9 +107,10 @@ def draw_icon(size):
             fill=BAR_INK,
         )
 
-    draw.rectangle(
+    draw.rounded_rectangle(
         (card[0] + k, card[1] + k, card[2] - k, card[3] - k),
-        outline=CARD_BORDER,
+        radius=33 * k,
+        outline=CARD_EDGE,
         width=round(2 * k),
     )
 

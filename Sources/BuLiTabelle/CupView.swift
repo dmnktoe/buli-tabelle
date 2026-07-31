@@ -1,30 +1,32 @@
 import SwiftUI
 
 private enum CupCol {
-    static let kickoff: CGFloat = 84
-    static let score: CGFloat = 52
-    static let note: CGFloat = 32
+    static let kickoff: CGFloat = 96
+    static let score: CGFloat = 56
+    static let note: CGFloat = 34
 }
 
-/// Kopfzeile der Pokalrunde – analog zum Tabellenkopf, mit rotem Abschluss.
+/// Kopfzeile der Pokalrunde – Name links, Fortschritt rechts.
 struct CupRoundHeader: View {
     let round: CupRound?
     let fallbackName: String
 
     var body: some View {
         HStack(spacing: 0) {
-            Text((round?.name ?? fallbackName).uppercased())
-                .padding(.leading, 6)
+            Text(round?.name ?? fallbackName)
+                .font(.ui(12, .semibold))
+                .foregroundStyle(Color.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(round?.progressText.uppercased() ?? "")
-                .padding(.trailing, 6)
+            Text(round?.progressText ?? "")
+                .font(.ui(11))
+                .foregroundStyle(.secondary)
         }
-        .font(.tahoma(10, bold: true))
-        .foregroundStyle(.white)
         .lineLimit(1)
-        .frame(height: 20)
-        .background(Color.black)
-        .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
+        .padding(.horizontal, 12)
+        .frame(height: 30)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.hairline).frame(height: 1)
+        }
     }
 }
 
@@ -33,7 +35,9 @@ struct CupPairingRow: View {
     @AppStorage("favoriteTeam") private var favoriteTeam = 0
 
     let match: OLMatch
-    let index: Int
+    var isLast = false
+
+    @State private var hovering = false
 
     private func isWinner(_ side: CupSide) -> Bool { match.cupWinner == side }
     private func isLoser(_ side: CupSide) -> Bool {
@@ -46,8 +50,8 @@ struct CupPairingRow: View {
 
     private func teamText(_ team: OLTeam, _ side: CupSide, alignment: Alignment) -> some View {
         Text(team.displayShort)
-            .font(.tahoma(11, bold: isWinner(side)))
-            .foregroundStyle(.black)
+            .font(.ui(12, isWinner(side) ? .semibold : .regular))
+            .foregroundStyle(Color.primary)
             .opacity(isLoser(side) ? 0.45 : 1)
             .lineLimit(1)
             .truncationMode(.tail)
@@ -55,37 +59,51 @@ struct CupPairingRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 8) {
             Text(match.kickoffText)
-                .font(.tahoma(10))
-                .foregroundStyle(XP.darkShadow)
+                .font(.ui(10))
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .frame(width: CupCol.kickoff, alignment: .leading)
 
             teamText(match.team1, .team1, alignment: .trailing)
-            TeamIconView(urlString: match.team1.teamIconUrl,
-                         fallback: match.team1.displayShort)
+            TeamIconView(urlString: match.team1.teamIconUrl, fallback: match.team1.displayShort)
 
             Text(match.cupScoreText)
-                .font(.tahoma(11, bold: match.matchIsFinished))
-                .foregroundStyle(.black)
+                .font(.stat(12, match.matchIsFinished ? .semibold : .regular))
+                .foregroundStyle(match.matchIsFinished ? Color.primary : Color.secondary)
                 .frame(width: CupCol.score)
 
-            TeamIconView(urlString: match.team2.teamIconUrl,
-                         fallback: match.team2.displayShort)
+            TeamIconView(urlString: match.team2.teamIconUrl, fallback: match.team2.displayShort)
             teamText(match.team2, .team2, alignment: .leading)
 
             Text(match.cupDecisionNote ?? "")
-                .font(.tahoma(9))
-                .foregroundStyle(XP.bundesligaRed)
+                .font(.ui(9, .semibold))
+                .foregroundStyle(Theme.accent)
                 .frame(width: CupCol.note, alignment: .leading)
         }
-        .padding(.horizontal, 6)
-        .frame(height: 21)
-        .background(involvesFavorite ? XP.favoriteFill : (index % 2 == 0 ? Color.white : Color(hex: 0xF7F6F0)))
-        .overlay(alignment: .bottom) {
-            Color(hex: 0xE4E2D8).frame(height: 1)
+        .padding(.horizontal, 12)
+        .frame(height: 30)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous)
+            if hovering {
+                shape.fill(Theme.hover).padding(.horizontal, 6)
+            } else if involvesFavorite {
+                shape.fill(Theme.favorite.opacity(0.14)).padding(.horizontal, 6)
+            }
         }
+        .overlay(alignment: .bottom) {
+            if !isLast {
+                Rectangle()
+                    .fill(Theme.hairline)
+                    .frame(height: 1)
+                    .padding(.horizontal, 12)
+                    .opacity(hovering ? 0 : 1)
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .animation(Theme.quick, value: hovering)
     }
 }
 
@@ -107,8 +125,8 @@ struct CupPanel: View {
             CupRoundHeader(round: round, fallbackName: model.roundName(model.spieltag))
 
             if let round, round.isDrawn {
-                ForEach(Array(round.matches.enumerated()), id: \.element.id) { i, match in
-                    CupPairingRow(match: match, index: i)
+                ForEach(Array(round.matches.enumerated()), id: \.element.id) { index, match in
+                    CupPairingRow(match: match, isLast: index == round.matches.count - 1)
                 }
                 if round.isComplete {
                     advancingFooter(round)
@@ -116,34 +134,39 @@ struct CupPanel: View {
             } else {
                 Group {
                     if model.isLoading {
-                        XPLoadingIndicator(text: model.status)
+                        LoadingIndicator(text: model.status)
                     } else {
-                        Text(emptyText)
-                            .font(.tahoma(11))
-                            .foregroundStyle(XP.darkShadow)
-                            .multilineTextAlignment(.center)
+                        EmptyStateView(systemImage: "trophy", text: emptyText)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 120)
+                .frame(height: 140)
             }
         }
-        .background(Color.white)
-        .bevel(sunken: true)
+        .padding(.vertical, 4)
+        .glass(.card, radius: Theme.Radius.card)
     }
 
     private func advancingFooter(_ round: CupRound) -> some View {
         let names = round.advancingTeams.map(\.displayShort).joined(separator: " · ")
-        return Text(names.isEmpty ? "" : "Weiter: \(names)")
-            .font(.tahoma(10))
-            .foregroundStyle(XP.darkShadow)
-            .lineLimit(2)
-            .multilineTextAlignment(.leading)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(Color(hex: 0xF4F2E8))
+        return Group {
+            if !names.isEmpty {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "arrow.forward.circle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.accent)
+                    Text(names)
+                        .font(.ui(10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .padding(.bottom, 2)
+            }
+        }
     }
 }
 

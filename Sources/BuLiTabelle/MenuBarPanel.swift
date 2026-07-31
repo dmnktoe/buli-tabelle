@@ -1,87 +1,65 @@
 import SwiftUI
 import AppKit
 
+/// Kompaktansicht hinter dem Menüleisten-Symbol.
 struct MenuBarPanel: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.openWindow) private var openWindow
     @AppStorage("favoriteTeam") private var favoriteTeam = 0
 
     private enum MCol {
-        static let pos: CGFloat = 24
+        static let pos: CGFloat = 20
         static let sp: CGFloat = 26
         static let diff: CGFloat = 34
-        static let pkt: CGFloat = 30
+        static let pkt: CGFloat = 28
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             header
-            if model.liga.isCup {
-                cupSection
-            } else {
-                tableSection
+            VStack(spacing: 0) {
+                if model.liga.isCup {
+                    cupSection
+                } else {
+                    tableSection
+                }
             }
+            .padding(.vertical, 4)
+            .glass(.card, radius: Theme.Radius.card)
             footer
         }
-        .frame(width: 300)
-        .background(XP.face)
+        .padding(12)
+        .frame(width: 320)
         .task {
             Analytics.signal(.menuBarOpened)
             if model.rows.isEmpty && model.cupRounds.isEmpty { await model.reload() }
         }
     }
 
-    /// Kompakte Pokalansicht: die Paarungen der laufenden Runde.
-    @ViewBuilder
-    private var cupSection: some View {
-        let round = model.currentCupRound
-        Text((round?.name ?? model.roundName(model.spieltag)).uppercased())
-            .font(.tahoma(9, bold: true))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 5)
-            .frame(height: 16)
-            .background(Color.black)
-            .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
-
-        if let round, round.isDrawn {
-            ForEach(round.matches) { match in
-                compactPairing(match)
+    private var header: some View {
+        HStack(spacing: 9) {
+            LeagueBadge(liga: model.liga)
+                .scaleEffect(0.85)
+                .frame(width: 26, height: 26)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(model.liga.display)
+                    .font(.ui(12, .semibold))
+                    .foregroundStyle(Color.primary)
+                Text("Saison \(model.seasonShort)")
+                    .font(.ui(10))
+                    .foregroundStyle(.secondary)
             }
-        } else {
-            Text(model.isLoading ? model.status : "Auslosung steht noch aus.")
-                .font(.tahoma(11))
-                .foregroundStyle(XP.darkShadow)
-                .frame(maxWidth: .infinity)
-                .frame(height: 60)
-                .background(Color.white)
+            Spacer(minLength: 4)
+            Text(model.liga.isCup
+                 ? CupBracket.shortName(model.roundName(model.spieltag))
+                 : "\(model.spieltag). Spieltag")
+                .font(.ui(10, .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
     }
 
-    private func compactPairing(_ match: OLMatch) -> some View {
-        HStack(spacing: 0) {
-            Text(match.team1.displayShort)
-                .font(.tahoma(10, bold: match.cupWinner == .team1))
-                .opacity(match.cupWinner == .team2 ? 0.45 : 1)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            Text(match.cupScoreText)
-                .font(.tahoma(10, bold: match.matchIsFinished))
-                .frame(width: 54)
-            Text(match.team2.displayShort)
-                .font(.tahoma(10, bold: match.cupWinner == .team2))
-                .opacity(match.cupWinner == .team1 ? 0.45 : 1)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 5)
-        .foregroundStyle(.black)
-        .frame(height: 18)
-        .background(Color.white)
-        .overlay(alignment: .bottom) {
-            Color(hex: 0xE4E2D8).frame(height: 1)
-        }
-    }
+    // MARK: - Tabelle
 
     @ViewBuilder
     private var tableSection: some View {
@@ -89,107 +67,162 @@ struct MenuBarPanel: View {
         if model.rows.isEmpty {
             Group {
                 if model.isLoading {
-                    XPLoadingIndicator(text: model.status, barWidth: 140)
+                    LoadingIndicator(text: model.status)
                 } else {
-                    Text(model.status)
-                        .font(.tahoma(11))
-                        .foregroundStyle(XP.darkShadow)
+                    EmptyStateView(systemImage: "tablecells", text: model.status)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
-            .background(Color.white)
+            .frame(height: 72)
         } else {
-            ForEach(model.rows) { row in
-                compactRow(row)
+            ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
+                compactRow(row, isLast: index == model.rows.count - 1)
             }
         }
-    }
-
-    private var header: some View {
-        HStack(spacing: 5) {
-            MiniBallIcon()
-            Text("\(AppInfo.name) – \(model.liga.display)")
-                .font(.tahoma(11, bold: true))
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
-                .lineLimit(1)
-            Spacer()
-            Text(model.liga.isCup ? CupBracket.shortName(model.roundName(model.spieltag))
-                                  : "\(model.spieltag). Spieltag")
-                .font(.tahoma(10))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 6)
-        .frame(height: 24)
-        .titleBarBackground()
     }
 
     private var tableHead: some View {
         HStack(spacing: 0) {
-            Text("PL").frame(width: MCol.pos, alignment: .leading).padding(.leading, 5)
-            Text("MANNSCHAFT")
-                .padding(.leading, Col.icon + 6)
+            Text("#").frame(width: MCol.pos, alignment: .leading)
+            Text("Mannschaft")
+                .padding(.leading, Col.icon + 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("SP").frame(width: MCol.sp, alignment: .trailing)
-            Text("DIFF").frame(width: MCol.diff, alignment: .trailing)
-            Text("PKT").frame(width: MCol.pkt, alignment: .trailing)
+            Text("Sp").frame(width: MCol.sp, alignment: .trailing)
+            Text("Diff").frame(width: MCol.diff, alignment: .trailing)
+            Text("Pkt").frame(width: MCol.pkt, alignment: .trailing)
         }
-        .padding(.trailing, 5)
-        .font(.tahoma(9, bold: true))
-        .foregroundStyle(.white)
-        .frame(height: 16)
-        .background(Color.black)
-        .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
+        .font(.ui(9, .semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .frame(height: 22)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.hairline).frame(height: 1)
+        }
     }
 
-    private func compactRow(_ row: TableRow) -> some View {
+    private func compactRow(_ row: TableRow, isLast: Bool) -> some View {
         let isFavorite = favoriteTeam == row.id
+        let zone = model.liga.zone(position: row.position, teamCount: model.rows.count)
         return HStack(spacing: 0) {
             Text("\(row.position)")
+                .font(.stat(10))
+                .foregroundStyle(.secondary)
                 .frame(width: MCol.pos, alignment: .leading)
-                .padding(.leading, 5)
-            TeamIconView(urlString: row.team.teamIconUrl,
-                         fallback: row.team.displayShort)
-            if isFavorite {
-                Text("★")
-                    .font(.tahoma(8))
-                    .foregroundStyle(XP.selectionBorder)
-                    .padding(.leading, 6)
+            TeamIconView(urlString: row.team.teamIconUrl, fallback: row.team.displayShort)
+            HStack(spacing: 3) {
+                Text(row.team.displayShort)
+                    .font(.ui(11, isFavorite ? .semibold : .regular))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if isFavorite {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 7))
+                        .foregroundStyle(Theme.favorite)
+                }
             }
-            Text(row.team.displayShort)
-                .font(.tahoma(10, bold: isFavorite))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .padding(.leading, isFavorite ? 2 : 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text("\(row.sp)").frame(width: MCol.sp, alignment: .trailing)
-            Text("\(row.diff)").frame(width: MCol.diff, alignment: .trailing)
+            .padding(.leading, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text("\(row.sp)")
+                .font(.stat(10))
+                .foregroundStyle(.secondary)
+                .frame(width: MCol.sp, alignment: .trailing)
+            Text(row.diff > 0 ? "+\(row.diff)" : "\(row.diff)")
+                .font(.stat(10))
+                .foregroundStyle(.secondary)
+                .frame(width: MCol.diff, alignment: .trailing)
             Text("\(row.pkt)")
-                .font(.tahoma(10, bold: true))
+                .font(.stat(11, .semibold))
                 .frame(width: MCol.pkt, alignment: .trailing)
         }
-        .padding(.trailing, 5)
-        .font(.tahoma(10))
-        .foregroundStyle(.black)
-        .frame(height: 18)
-        .background(
-            model.liga.zoneColor(position: row.position, teamCount: model.rows.count)
-                ?? (isFavorite ? XP.favoriteFill : .white)
-        )
+        .foregroundStyle(Color.primary)
+        .padding(.horizontal, 10)
+        .frame(height: 22)
+        .background(alignment: .leading) {
+            if let zone {
+                Capsule(style: .continuous)
+                    .fill(zone.color)
+                    .frame(width: 2, height: 14)
+                    .padding(.leading, 4)
+            }
+        }
         .overlay(alignment: .bottom) {
-            Color(hex: 0xE4E2D8).frame(height: 1)
+            if !isLast {
+                Rectangle().fill(Theme.hairline).frame(height: 1).padding(.horizontal, 10)
+            }
         }
     }
 
-    private var footer: some View {
-        HStack(spacing: 4) {
-            XPButton("Fenster öffnen", emphasized: true) { openMainWindow() }
-            XPButton("Aktualisieren") { model.loadFromInternet() }
-            XPButton("Beenden") { NSApp.terminate(nil) }
+    // MARK: - Pokal
+
+    /// Kompakte Pokalansicht: die Paarungen der laufenden Runde.
+    @ViewBuilder
+    private var cupSection: some View {
+        let round = model.currentCupRound
+        Text(round?.name ?? model.roundName(model.spieltag))
+            .font(.ui(10, .semibold))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10)
+            .frame(height: 22)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Theme.hairline).frame(height: 1)
+            }
+
+        if let round, round.isDrawn {
+            ForEach(Array(round.matches.enumerated()), id: \.element.id) { index, match in
+                compactPairing(match, isLast: index == round.matches.count - 1)
+            }
+        } else {
+            EmptyStateView(
+                systemImage: "trophy",
+                text: model.isLoading ? model.status : "Auslosung steht noch aus."
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 72)
         }
-        .padding(4)
+    }
+
+    private func compactPairing(_ match: OLMatch, isLast: Bool) -> some View {
+        HStack(spacing: 0) {
+            Text(match.team1.displayShort)
+                .font(.ui(10, match.cupWinner == .team1 ? .semibold : .regular))
+                .opacity(match.cupWinner == .team2 ? 0.45 : 1)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            Text(match.cupScoreText)
+                .font(.stat(10, match.matchIsFinished ? .semibold : .regular))
+                .frame(width: 56)
+            Text(match.team2.displayShort)
+                .font(.ui(10, match.cupWinner == .team2 ? .semibold : .regular))
+                .opacity(match.cupWinner == .team1 ? 0.45 : 1)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .foregroundStyle(Color.primary)
+        .padding(.horizontal, 10)
+        .frame(height: 22)
+        .overlay(alignment: .bottom) {
+            if !isLast {
+                Rectangle().fill(Theme.hairline).frame(height: 1).padding(.horizontal, 10)
+            }
+        }
+    }
+
+    // MARK: - Fußzeile
+
+    private var footer: some View {
+        HStack(spacing: 6) {
+            GlassButton("Fenster öffnen", systemImage: "macwindow", prominent: true) {
+                openMainWindow()
+            }
+            IconButton(systemName: "arrow.clockwise", help: "Aktualisieren") {
+                model.loadFromInternet()
+            }
+            Spacer(minLength: 0)
+            IconButton(systemName: "power", help: "\(AppInfo.name) beenden") {
+                NSApp.terminate(nil)
+            }
+        }
     }
 
     private func openMainWindow() {

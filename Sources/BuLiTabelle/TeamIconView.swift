@@ -15,11 +15,12 @@ struct TeamIconView: View {
 
     private var placeholder: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 2).fill(Color(hex: 0xD0CDC0))
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(Color.primary.opacity(0.08))
             if let f = fallback.map(initials), !f.isEmpty {
                 Text(f)
-                    .font(.tahoma(7, bold: true))
-                    .foregroundStyle(XP.darkShadow)
+                    .font(.ui(7, .bold))
+                    .foregroundStyle(.secondary)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
             }
@@ -51,7 +52,7 @@ struct TeamIconView: View {
                     case .success(let image):
                         image
                             .resizable()
-                            .interpolation(.none)
+                            .interpolation(.high)
                             .aspectRatio(contentMode: .fit)
                     default:
                         placeholder

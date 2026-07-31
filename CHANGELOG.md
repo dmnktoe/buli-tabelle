@@ -7,6 +7,37 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- **Komplett neue Oberfläche im Liquid-Glass-Look.** Die Windows-XP-Optik ist
+  vollständig entfernt: keine Bevel-Ränder, keine Luna-Farbverläufe, keine
+  Tahoma-Schrift und keine selbstgezeichneten Fensterknöpfe mehr.
+  - **Echtes Glas:** Tabelle, Panels und Bedienelemente liegen als
+    durchscheinende Flächen über einem `NSVisualEffectView`, der den Schreibtisch
+    hinter dem Fenster durchblitzen lässt. Ab macOS 26 übernimmt das native
+    Liquid Glass des Systems, darunter tritt eine handgebaute Scheibe aus
+    Material, Lichtkante und Schatten an seine Stelle.
+  - **Dunkelmodus:** Die App folgt jetzt der Systemeinstellung. Alle Farben —
+    Akzent, Zonen, Sieg/Unentschieden/Niederlage — gibt es hell und dunkel.
+  - **Native Fensterleiste:** Schließen, Minimieren und Zoomen macht wieder
+    macOS. Wer bei aktivem Menüleisten-Symbol schließt, behält die App wie
+    gehabt in der Menüleiste.
+  - **Aktionen statt Knopfspalte:** Die Leiste am linken Rand ist verschwunden.
+    Neu laden und Torjäger liegen als Symbole im Kopf, Teilen/Exportieren und
+    die selteneren Befehle in zwei Menüs daneben.
+  - **Tabelle:** Auf- und Abstiegszonen erscheinen als farbige Balken am
+    Zeilenrand statt als flächige Pastelltöne, darunter eine Legende. Zahlen
+    laufen in gleich breiten Ziffern, Zeilen reagieren auf den Zeiger, die
+    Auswahl wird weich animiert.
+  - **Spieltag-Bereich** klappt als Karte auf, mit Federanimation statt
+    Klapp-Menü.
+  - **Einstellungen** nutzen native Schalter, Info und Torjägerliste sind
+    schwebende Glaspanels (Escape schließt).
+- Der **HTML-Export** kommt im Look der App: Systemschrift, weiche Karte,
+  automatischer Dunkelmodus.
+- Der automatische **Screenshot** setzt das Fenster auf einen dunklen
+  Aurora-Hintergrund (`BULI_SCREENSHOT_BG=aurora`, vorher `xp`).
+
 ## [1.2.1] – 2026-07-31
 
 ### Geändert

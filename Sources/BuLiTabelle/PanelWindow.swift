@@ -1,7 +1,9 @@
 import SwiftUI
 import AppKit
 
-final class RetroPanelWindow: NSWindow {
+/// Randloses, durchsichtiges Fenster – die sichtbare Form gibt allein das
+/// Glaspanel im Inhalt vor (abgerundete Ecken, Kante, Material).
+final class GlassPanelWindow: NSWindow {
     init() {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 320, height: 240),
@@ -16,8 +18,15 @@ final class RetroPanelWindow: NSWindow {
         isReleasedWhenClosed = false
     }
 
+    /// Wird beim Druck auf Escape ausgelöst.
+    var onCancel: () -> Void = {}
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    override func cancelOperation(_ sender: Any?) {
+        onCancel()
+    }
 }
 
 final class PanelCloser {
@@ -35,12 +44,13 @@ final class PanelWindows {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let window = RetroPanelWindow()
+        let window = GlassPanelWindow()
         let closer = PanelCloser()
         closer.action = { [weak self, weak window] in
             window?.close()
             self?.windows[id] = nil
         }
+        window.onCancel = { closer.close() }
         let host = NSHostingView(rootView: content(closer))
         window.contentView = host
         window.setContentSize(host.fittingSize)
