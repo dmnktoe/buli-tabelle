@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit-Tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-test-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-test-${{ runner.os }}-
+
+      - name: swift test
+        run: swift test
+
+  build:
+    name: Build & E2E-Smoke
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: App-Bundle bauen (ad-hoc, Universal)
+        run: ./build-app.sh
+
+      - name: Bundle prüfen
+        run: |
+          test -d build/BuLiTabelle.app || { echo "::error::build/BuLiTabelle.app fehlt"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 build/BuLiTabelle.app || true
+
+      - name: E2E-Smoke – App starten, darf nicht crashen
+        run: |
+          BIN=build/BuLiTabelle.app/Contents/MacOS/BuLiTabelle
+          BULI_SCREENSHOT="$PWD/smoke.png" "$BIN" > app.log 2>&1 &
+          PID=$!
+          for _ in $(seq 1 12); do
+            sleep 0.5
+            kill -0 "$PID" 2>/dev/null || break
+          done
+          if kill -0 "$PID" 2>/dev/null; then
+            kill "$PID" 2>/dev/null || true
+            wait "$PID" 2>/dev/null || true
+            echo "✓ App lief 6 s stabil, kein Crash."
+            [ -f "$PWD/smoke.png" ] && echo "✓ Fenster erfolgreich gerendert." \
+              || echo "::warning::Kein Screenshot (evtl. CI-Renderlimit) – aber kein Crash."
+          else
+            CODE=0; wait "$PID" || CODE=$?
+            echo "--- App-Log ---"; cat app.log || true
+            if [ "$CODE" -gt 128 ]; then
+              echo "::error::App CRASHED mit Signal $((CODE - 128)) beim Start – Regression!"
+              exit 1
+            fi
+            echo "::warning::App beendete sich selbst (Exit $CODE, kein Crash-Signal) – evtl. Headless-Limit auf CI."
+          fi

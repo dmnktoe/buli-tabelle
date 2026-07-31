@@ -1,0 +1,52 @@
+name: Screenshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      background:
+        description: 'Hintergrund: xp (Luna-Blau) | gray | none (nur Fenster)'
+        default: 'xp'
+        required: false
+      scale:
+        description: 'Renderfaktor (Retina), z. B. 2'
+        default: '2'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  screenshot:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: App bauen
+        run: swift build
+
+      - name: Screenshot aufnehmen (16:9, XP-Backdrop)
+        env:
+          BULI_SCREENSHOT_BG: ${{ github.event.inputs.background }}
+          BULI_SCREENSHOT_SCALE: ${{ github.event.inputs.scale }}
+        run: |
+          rm -f docs/screenshot.png
+          BULI_SCREENSHOT="$PWD/docs/screenshot.png" swift run &
+          RUN_PID=$!
+          for i in $(seq 1 60); do
+            [ -s docs/screenshot.png ] && break
+            sleep 2
+          done
+          sleep 2
+          kill "$RUN_PID" 2>/dev/null || true
+          pkill -f BuLiTabelle 2>/dev/null || true
+          test -s docs/screenshot.png
+
+      - name: Screenshot committen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshot.png
+          git diff --cached --quiet && { echo "▸ Keine Änderung am Screenshot."; exit 0; }
+          git commit -m "docs: App-Screenshot automatisch aufgenommen"
+          git push
