@@ -60,8 +60,8 @@ struct InfoSheet: View {
                     .font(.tahoma(12, bold: true))
                     .foregroundStyle(.black)
                 Text("""
-                Bundesliga-Tabellen für macOS.
-                Live-Daten und jeder Spieltag seit 2004/05.
+                Bundesliga-Tabellen und DFB-Pokal für macOS.
+                Live-Daten, jeder Spieltag und jede Pokalrunde seit 2004/05.
 
                 Daten: OpenLigaDB (www.openligadb.de)
                 © 2026 dmnktoe · Swift & SwiftUI

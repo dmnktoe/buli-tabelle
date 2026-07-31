@@ -1,17 +1,21 @@
-# ⚽ BuLi Tabelle – Bundesliga-Tabellen für macOS
+# ⚽ BuLi Tabelle – Bundesliga-Tabellen und DFB-Pokal für macOS
 
 [![Version](https://img.shields.io/github/v/release/dmnktoe/buli-tabelle?label=Version&color=D20515&labelColor=1D1D1B)](https://github.com/dmnktoe/buli-tabelle/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/dmnktoe/buli-tabelle/total?label=Downloads&color=D20515&labelColor=1D1D1B)](https://github.com/dmnktoe/buli-tabelle/releases)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-D20515?logo=apple&labelColor=1D1D1B)](https://dmnktoe.github.io/buli-tabelle/)
 
-**BuLi Tabelle** zeigt Bundesliga-Tabellen als native macOS-App in Swift & SwiftUI — im
-Look der frühen 2000er: Luna-Farbverläufe, Tahoma-Schrift und 3D-Bevel-Ränder.
-Ein Stück Fußball-Nostalgie, das echte Live-Daten anzeigt.
+**BuLi Tabelle** zeigt Bundesliga-Tabellen und den DFB-Pokal als native macOS-App
+in Swift & SwiftUI — im Look der frühen 2000er: Luna-Farbverläufe, Tahoma-Schrift
+und 3D-Bevel-Ränder. Ein Stück Fußball-Nostalgie, das echte Live-Daten anzeigt.
 
 ## Was die App kann
 
 - **Live-Tabellen** der 1. Bundesliga, 2. Bundesliga und 3. Liga über
   [OpenLigaDB](https://www.openligadb.de)
+- **DFB-Pokal** als eigener Modus: alle Runden von der 1. Runde bis zum Finale,
+  mit Paarungen, Ergebnissen und dem Sieger jeder Partie — auch wenn erst die
+  Verlängerung oder das Elfmeterschießen entschieden hat. Noch nicht ausgeloste
+  Runden werden als solche ausgewiesen.
 - **Zeitreise:** Tabelle für jeden Spieltag jeder Saison seit 2004/05 — lokal aus
   den Spielergebnissen berechnet (Punkte, Tordifferenz, erzielte Tore)
 - Farbig markierte **Auf- und Abstiegszonen** (Champions League, Europa League,

@@ -6,6 +6,8 @@ extension Liga {
     func zoneColor(position: Int, teamCount: Int) -> Color? {
         guard teamCount > 4 else { return nil }
         switch self {
+        case .dfb:
+            return nil  // K.-o.-Wettbewerb ohne Tabelle und damit ohne Zonen
         case .bl1:
             if position <= 4 { return XP.zoneCL }
             if position == 5 { return XP.zoneEL }

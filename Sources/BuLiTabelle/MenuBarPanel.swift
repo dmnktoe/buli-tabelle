@@ -16,24 +16,10 @@ struct MenuBarPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            tableHead
-            if model.rows.isEmpty {
-                Group {
-                    if model.isLoading {
-                        XPLoadingIndicator(text: model.status, barWidth: 140)
-                    } else {
-                        Text(model.status)
-                            .font(.tahoma(11))
-                            .foregroundStyle(XP.darkShadow)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 60)
-                .background(Color.white)
+            if model.liga.isCup {
+                cupSection
             } else {
-                ForEach(model.rows) { row in
-                    compactRow(row)
-                }
+                tableSection
             }
             footer
         }
@@ -41,7 +27,82 @@ struct MenuBarPanel: View {
         .background(XP.face)
         .task {
             Analytics.signal(.menuBarOpened)
-            if model.rows.isEmpty { await model.reload() }
+            if model.rows.isEmpty && model.cupRounds.isEmpty { await model.reload() }
+        }
+    }
+
+    /// Kompakte Pokalansicht: die Paarungen der laufenden Runde.
+    @ViewBuilder
+    private var cupSection: some View {
+        let round = model.currentCupRound
+        Text((round?.name ?? model.roundName(model.spieltag)).uppercased())
+            .font(.tahoma(9, bold: true))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 5)
+            .frame(height: 16)
+            .background(Color.black)
+            .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
+
+        if let round, round.isDrawn {
+            ForEach(round.matches) { match in
+                compactPairing(match)
+            }
+        } else {
+            Text(model.isLoading ? model.status : "Auslosung steht noch aus.")
+                .font(.tahoma(11))
+                .foregroundStyle(XP.darkShadow)
+                .frame(maxWidth: .infinity)
+                .frame(height: 60)
+                .background(Color.white)
+        }
+    }
+
+    private func compactPairing(_ match: OLMatch) -> some View {
+        HStack(spacing: 0) {
+            Text(match.team1.displayShort)
+                .font(.tahoma(10, bold: match.cupWinner == .team1))
+                .opacity(match.cupWinner == .team2 ? 0.45 : 1)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            Text(match.cupScoreText)
+                .font(.tahoma(10, bold: match.matchIsFinished))
+                .frame(width: 54)
+            Text(match.team2.displayShort)
+                .font(.tahoma(10, bold: match.cupWinner == .team2))
+                .opacity(match.cupWinner == .team1 ? 0.45 : 1)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 5)
+        .foregroundStyle(.black)
+        .frame(height: 18)
+        .background(Color.white)
+        .overlay(alignment: .bottom) {
+            Color(hex: 0xE4E2D8).frame(height: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var tableSection: some View {
+        tableHead
+        if model.rows.isEmpty {
+            Group {
+                if model.isLoading {
+                    XPLoadingIndicator(text: model.status, barWidth: 140)
+                } else {
+                    Text(model.status)
+                        .font(.tahoma(11))
+                        .foregroundStyle(XP.darkShadow)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .background(Color.white)
+        } else {
+            ForEach(model.rows) { row in
+                compactRow(row)
+            }
         }
     }
 
@@ -54,9 +115,11 @@ struct MenuBarPanel: View {
                 .shadow(color: .black.opacity(0.55), radius: 0, x: 1, y: 1)
                 .lineLimit(1)
             Spacer()
-            Text("\(model.spieltag). Spieltag")
+            Text(model.liga.isCup ? CupBracket.shortName(model.roundName(model.spieltag))
+                                  : "\(model.spieltag). Spieltag")
                 .font(.tahoma(10))
                 .foregroundStyle(.white)
+                .lineLimit(1)
         }
         .padding(.horizontal, 6)
         .frame(height: 24)

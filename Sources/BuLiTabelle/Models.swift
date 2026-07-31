@@ -138,7 +138,7 @@ struct TableRow: Identifiable {
 }
 
 enum Liga: String, CaseIterable, Identifiable {
-    case bl1, bl2, bl3
+    case bl1, bl2, bl3, dfb
 
     var id: String { rawValue }
 
@@ -147,6 +147,7 @@ enum Liga: String, CaseIterable, Identifiable {
         case .bl1: return "1. Bundesliga"
         case .bl2: return "2. Bundesliga"
         case .bl3: return "3. Liga"
+        case .dfb: return "DFB-Pokal"
         }
     }
 
@@ -155,6 +156,13 @@ enum Liga: String, CaseIterable, Identifiable {
         case .bl1: return "1. LIGA"
         case .bl2: return "2. LIGA"
         case .bl3: return "3. LIGA"
+        case .dfb: return "POKAL"
         }
     }
+
+    /// K.-o.-Wettbewerb statt Liga: Runden mit Auslosung, keine Tabelle.
+    var isCup: Bool { self == .dfb }
+
+    /// „Spieltag“ heißt im Pokal „Runde“.
+    var periodNoun: String { isCup ? "Runde" : "Spieltag" }
 }
