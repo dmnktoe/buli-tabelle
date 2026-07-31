@@ -3,6 +3,18 @@
     <channel>
         <title>BuLi Tabelle</title>
         <item>
+            <title>1.2.1</title>
+            <pubDate>Fri, 31 Jul 2026 14:48:13 +0000</pubDate>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/dmnktoe/buli-tabelle/releases/download/v1.2.1/BuLiTabelle-1.2.1.zip" length="2521126" type="application/octet-stream" sparkle:edSignature="++I8+Z6ASJll6ywTyLehFt1OeZAc4FR2oXCTfmdnBHcmjjPKQdX4Wanl9F5G5mRS0aD1lO/Tq8qW5IDYXxCcBQ==" />
+            <description>&lt;h4&gt;Geändert&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;Die Auswahlfelder für Liga, Saison und Spieltag markieren den aktuell gewählten Eintrag im aufgeklappten Menü mit einem Häkchen.&lt;/li&gt;
+&lt;/ul&gt;</description>
+        </item>
+        <item>
             <title>1.2.0</title>
             <pubDate>Fri, 31 Jul 2026 14:10:03 +0000</pubDate>
             <sparkle:version>6</sparkle:version>
