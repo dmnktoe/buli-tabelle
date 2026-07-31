@@ -3,6 +3,25 @@
     <channel>
         <title>BuLi Tabelle</title>
         <item>
+            <title>1.1.0</title>
+            <pubDate>Fri, 31 Jul 2026 13:57:01 +0000</pubDate>
+            <sparkle:version>4</sparkle:version>
+            <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/dmnktoe/buli-tabelle/releases/download/v1.1.0/BuLiTabelle-1.1.0.zip" length="2407837" type="application/octet-stream" sparkle:edSignature="fjbc3hG257xLmXJEdMk9f/ssGYWqcLGCs5rAti+8Xiya8W75ONHc0heemwYuzVs5lHrXWpj/J1drOVp1G4ZIBQ==" />
+            <description>&lt;h4&gt;Hinzugefügt&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;Die anonyme Nutzungsstatistik erfasst jetzt auch &lt;b&gt;einzelne Ereignisse&lt;/b&gt; statt nur den Programmstart: Ligawechsel, Spieltagsnavigation, Export, Kopieren, Drucken, geöffnete Fenster, Update-Suche und Ladefehler. Weiterhin ohne personenbezogene Daten und weiterhin in den Einstellungen abschaltbar — wer den Schalter umlegt, sendet ab diesem Moment nichts mehr.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;Geändert&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;b&gt;Neues App-Icon&lt;/b&gt; aus dem Icon Composer: weißer Fußball auf Bundesliga-rotem Verlauf. Es liegt allen Größen zugrunde — Programmsymbol, Downloadseite und Favicons.&lt;/li&gt;
+&lt;li&gt;&lt;b&gt;Bundesliga-Rot&lt;/b&gt; als dezenter Akzent durch die ganze App und die Downloadseite: roter Abschluss unter den Titelleisten und Tabellenköpfen, rote Rubriken in der Aktionsspalte, rot umrandete Hauptschaltflächen. Die Zonenfarben und die Formkurve bleiben unangetastet, damit Rot dort weiter „Abstieg“ bzw. „Niederlage“ heißt.&lt;/li&gt;
+&lt;li&gt;Das &lt;b&gt;Menüleisten-Symbol&lt;/b&gt; ist jetzt der Fußball statt der Deutschland-Flagge — als Template-Image, das sich heller und dunkler Menüleiste selbst anpasst. Auch die Titelleisten tragen den Ball.&lt;/li&gt;
+&lt;li&gt;Das App-Bundle heißt jetzt &lt;b&gt;„BuLi Tabelle.app“&lt;/b&gt; mit Leerzeichen. Der Name der Download-Datei bleibt &lt;code&gt;BuLiTabelle-&amp;lt;Version&amp;gt;.zip&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;</description>
+        </item>
+        <item>
             <title>1.0.0</title>
             <pubDate>Fri, 31 Jul 2026 13:15:56 +0000</pubDate>
             <sparkle:version>2</sparkle:version>
