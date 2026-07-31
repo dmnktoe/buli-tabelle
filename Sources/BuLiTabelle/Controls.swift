@@ -91,7 +91,13 @@ struct RetroDropdown<T: Hashable>: View {
     var body: some View {
         Menu {
             ForEach(items, id: \.self) { item in
-                Button(display(item)) { selection = item }
+                Toggle(
+                    display(item),
+                    isOn: Binding(
+                        get: { item == selection },
+                        set: { isOn in if isOn { selection = item } }
+                    )
+                )
             }
         } label: {
             HStack(spacing: 0) {
