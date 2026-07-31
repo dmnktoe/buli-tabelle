@@ -6,7 +6,7 @@ private struct GroupCaption: View {
     var body: some View {
         Text(text)
             .font(.tahoma(9, bold: true))
-            .foregroundStyle(XP.darkShadow)
+            .foregroundStyle(XP.bundesligaRed)
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 4)

@@ -8,7 +8,7 @@ struct RetroPanel<Content: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 5) {
-                MiniFlagIcon()
+                MiniBallIcon()
                 Text(title)
                     .font(.tahoma(11, bold: true))
                     .foregroundStyle(.white)
@@ -18,7 +18,7 @@ struct RetroPanel<Content: View>: View {
             }
             .padding(.horizontal, 6)
             .frame(height: 26)
-            .background(XP.titleGradient)
+            .titleBarBackground()
             content
                 .padding(12)
         }
@@ -149,6 +149,12 @@ struct SettingsSheet: View {
     @AppStorage("keepInMenuBar") private var keepInMenuBar = true
     @AppStorage("sendAnalytics") private var sendAnalytics = true
 
+    /// Beim Abschalten der Statistik greift der Guard in `Analytics` bereits –
+    /// das Ausschalten selbst wird also bewusst nicht mehr gemeldet.
+    private func track(_ key: String, _ value: Bool) {
+        Analytics.signal(.settingChanged, ["key": key, "value": value ? "on" : "off"])
+    }
+
     var body: some View {
         RetroPanel(title: "Einstellungen", onClose: onClose) {
             VStack(alignment: .leading, spacing: 10) {
@@ -189,6 +195,12 @@ struct SettingsSheet: View {
                     .frame(maxWidth: .infinity)
             }
             .frame(width: 250)
+            .onChange(of: zoneColors) { track("zoneColors", $0) }
+            .onChange(of: showLogos) { track("showLogos", $0) }
+            .onChange(of: showForm) { track("showForm", $0) }
+            .onChange(of: showMenuBarItem) { track("showMenuBarItem", $0) }
+            .onChange(of: keepInMenuBar) { track("keepInMenuBar", $0) }
+            .onChange(of: sendAnalytics) { track("sendAnalytics", $0) }
         }
     }
 }

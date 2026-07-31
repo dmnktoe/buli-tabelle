@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP="${1:-build/BuLiTabelle.app}"
+APP="${1:-build/BuLi Tabelle.app}"
 [ -d "$APP" ] || { echo "✗ $APP fehlt — erst ./build-app.sh ausführen."; exit 1; }
 
 NOTARY_ARGS=()

@@ -14,16 +14,28 @@ final class AppModel: ObservableObject {
     private let api = OpenLigaDBClient.shared
 
     @Published var liga: Liga = .bl1 {
-        didSet { if oldValue != liga { Task { await reload() } } }
+        didSet {
+            guard oldValue != liga else { return }
+            Analytics.signal(.leagueChanged, ["liga": liga.rawValue])
+            Task { await reload() }
+        }
     }
     @Published var season: Int {
-        didSet { if oldValue != season { Task { await reload() } } }
+        didSet {
+            guard oldValue != season else { return }
+            Analytics.signal(.seasonChanged, ["season": String(season)])
+            Task { await reload() }
+        }
     }
     @Published var spieltag: Int = 1 {
         didSet { if oldValue != spieltag { recompute() } }
     }
     @Published var tableMode: TableMode = .gesamt {
-        didSet { if oldValue != tableMode { recompute() } }
+        didSet {
+            guard oldValue != tableMode else { return }
+            Analytics.signal(.tableModeChanged, ["mode": tableMode.rawValue])
+            recompute()
+        }
     }
     @Published private(set) var maxSpieltag = 34
     @Published private(set) var rows: [TableRow] = []
@@ -90,6 +102,12 @@ final class AppModel: ObservableObject {
                 spieltag = target
             }
             status = ms.isEmpty ? "Keine Daten für diese Saison verfügbar" : "Fertig"
+            Analytics.signal(.tableLoaded, [
+                "liga": liga.rawValue,
+                "season": String(season),
+                "mode": tableMode.rawValue,
+                "empty": ms.isEmpty ? "yes" : "no",
+            ])
         } catch is CancellationError {
             return
         } catch let error as URLError where error.code == .cancelled {
@@ -99,10 +117,28 @@ final class AppModel: ObservableObject {
             rows = []
             matchesOfSpieltag = []
             status = "Fehler beim Laden"
+            Analytics.signal(.tableLoadFailed, [
+                "liga": liga.rawValue,
+                "season": String(season),
+                "reason": Self.failureReason(error),
+            ])
             alert = RetroAlertInfo(
                 title: "Fehler",
                 message: "Daten konnten nicht geladen werden.\n\n\(error.localizedDescription)"
             )
+        }
+    }
+
+    /// Grobe Fehlerkategorie fürs Ereignis – bewusst ohne `localizedDescription`,
+    /// damit weder URLs noch Systemsprache in der Statistik landen.
+    private static func failureReason(_ error: Error) -> String {
+        guard let urlError = error as? URLError else { return "decoding" }
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost: return "offline"
+        case .timedOut: return "timeout"
+        case .badServerResponse, .cannotParseResponse: return "badResponse"
+        case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed: return "unreachable"
+        default: return "other"
         }
     }
 
@@ -116,14 +152,27 @@ final class AppModel: ObservableObject {
     // MARK: - Navigation
 
     func prevSpieltag() {
-        if canGoPrevSpieltag { spieltag -= 1 }
+        guard canGoPrevSpieltag else { return }
+        spieltag -= 1
+        Analytics.signal(.matchdayChanged, ["source": "prev"])
     }
 
     func nextSpieltag() {
-        if canGoNextSpieltag { spieltag += 1 }
+        guard canGoNextSpieltag else { return }
+        spieltag += 1
+        Analytics.signal(.matchdayChanged, ["source": "next"])
+    }
+
+    /// Springt zum Spieltag `value` – getrennt von `spieltag`, damit nur bewusste
+    /// Sprünge gezählt werden und nicht das Nachziehen beim Laden.
+    func jumpToSpieltag(_ value: Int) {
+        guard value != spieltag else { return }
+        spieltag = value
+        Analytics.signal(.matchdayChanged, ["source": "dropdown"])
     }
 
     func showCurrentTable() {
+        Analytics.signal(.tableCurrentRequested)
         let target = SeasonCalendar.defaultSeason()
         if season != target {
             season = target
@@ -133,24 +182,28 @@ final class AppModel: ObservableObject {
     }
 
     func loadFromInternet() {
+        Analytics.signal(.tableReloadRequested)
         Task { await reload() }
     }
 
     // MARK: - Fenster & Links
 
     func openInfo() {
+        Analytics.signal(.infoOpened)
         panels.show("info") { closer in
             InfoSheet(onClose: closer.close).environmentObject(self)
         }
     }
 
     func openSettings() {
+        Analytics.signal(.settingsOpened)
         panels.show("settings") { closer in
             SettingsSheet(onClose: closer.close)
         }
     }
 
     func openStats() {
+        Analytics.signal(.statsOpened)
         panels.show("stats") { closer in
             StatsSheet(onClose: closer.close).environmentObject(self)
         }
@@ -163,6 +216,7 @@ final class AppModel: ObservableObject {
     }
 
     func checkForUpdate() {
+        Analytics.signal(.updateCheckRequested, ["mode": "unavailable"])
         alert = RetroAlertInfo(
             title: "Update suchen",
             message: "\(AppInfo.name) \(AppInfo.displayVersion)\n\nAuto-Updates sind nur in der veröffentlichten App aktiv."
@@ -170,11 +224,13 @@ final class AppModel: ObservableObject {
     }
 
     func reportBug() {
+        Analytics.signal(.bugReported)
         let url = URL(string: "mailto:dmnktoe@gmail.com?subject=BuLi%20Tabelle%20Fehlerbericht")!
         NSWorkspace.shared.open(url)
     }
 
     func openDataSource() {
+        Analytics.signal(.dataSourceOpened)
         NSWorkspace.shared.open(URL(string: "https://www.openligadb.de")!)
     }
 
@@ -196,9 +252,11 @@ final class AppModel: ObservableObject {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         status = "Tabelle kopiert"
+        Analytics.signal(.tableCopied)
     }
 
     func printTable() {
+        Analytics.signal(.tablePrinted)
         let view = NSHostingView(rootView: PrintableTable(title: tableTitle, rows: rows))
         view.frame = NSRect(origin: .zero, size: view.fittingSize)
         let op = NSPrintOperation(view: view)
@@ -218,6 +276,7 @@ final class AppModel: ObservableObject {
             do {
                 try text.data(using: .utf8)?.write(to: url)
                 status = "Exportiert: \(url.lastPathComponent)"
+                Analytics.signal(.tableExported, ["format": type.preferredFilenameExtension ?? "unknown"])
             } catch {
                 alert = RetroAlertInfo(title: "Fehler", message: "Export fehlgeschlagen.\n\(error.localizedDescription)")
             }

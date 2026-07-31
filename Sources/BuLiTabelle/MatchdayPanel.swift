@@ -17,6 +17,7 @@ struct SpieltagMenuBar: View {
     var body: some View {
         Button {
             model.showSpieltagMenu.toggle()
+            Analytics.signal(.matchdayPanelToggled, ["state": model.showSpieltagMenu ? "open" : "closed"])
         } label: {
             HStack {
                 Text("Spieltag-Menü >>")

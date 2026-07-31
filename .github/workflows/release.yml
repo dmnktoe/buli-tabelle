@@ -149,7 +149,7 @@ jobs:
         run: ./build-app.sh
 
       - name: Notarisieren + tackern (falls Credentials vorhanden)
-        run: ./scripts/notarize.sh build/BuLiTabelle.app
+        run: ./scripts/notarize.sh "build/BuLi Tabelle.app"
 
       - name: Sparkle-Release-Notes aus CHANGELOG erzeugen
         run: |
@@ -164,7 +164,7 @@ jobs:
 
       - name: README-Screenshot rendern (16:9, XP-Backdrop, best effort)
         run: |
-          BIN="build/BuLiTabelle.app/Contents/MacOS/BuLiTabelle"
+          BIN="build/BuLi Tabelle.app/Contents/MacOS/BuLiTabelle"
           OUT="$RUNNER_TEMP/screenshot.png"
           BULI_SCREENSHOT="$OUT" BULI_SCREENSHOT_SCALE=2 BULI_SCREENSHOT_BG=xp "$BIN" \
             > "$RUNNER_TEMP/shot.log" 2>&1 &

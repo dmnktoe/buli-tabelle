@@ -47,7 +47,7 @@ eingebettetem Sparkle) entsteht mit:
 
 ```bash
 ./build-app.sh
-open build/BuLiTabelle.app
+open "build/BuLi Tabelle.app"
 ```
 
 ### Release veröffentlichen

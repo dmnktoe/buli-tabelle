@@ -15,7 +15,7 @@ if [ -z "${SIGN_IDENTITY:-}" ]; then
   echo "    fremden Macs von Gatekeeper blockiert. Für echte Verteilung Developer ID setzen."
 fi
 
-./scripts/notarize.sh build/BuLiTabelle.app
+./scripts/notarize.sh "build/BuLi Tabelle.app"
 GH_REPO="$GH_REPO" ./scripts/make-appcast.sh
 
 echo ""

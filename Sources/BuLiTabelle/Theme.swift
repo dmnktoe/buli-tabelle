@@ -36,17 +36,30 @@ enum XP {
     static let selectionBorder = Color(hex: 0xE0A000)
     static let favoriteFill = Color(hex: 0xFFF6DC)
 
-    static let flagRed = Color(hex: 0xEE1C25)
-    static let flagYellow = Color(hex: 0xFFE600)
-
     static let btnInfoGreen = Color(hex: 0xC4EFC0)
     static let btnBugPink = Color(hex: 0xFFC0CF)
+
+    /// Bundesliga-Rot als Marken-Akzent – dieselbe Farbe wie im App-Icon.
+    ///
+    /// Bewusst nur in der Fenster-Chrome: Leisten, Trennlinien, Hervorhebungen.
+    /// In der Tabelle selbst hat Rot bereits eine Bedeutung (Abstieg, Niederlage
+    /// in der Formkurve), dort bleibt es den Zonenfarben vorbehalten.
+    static let bundesligaRed = Color(hex: 0xC12A24)
+    static let bundesligaRedDark = Color(hex: 0x8E1F1A)
 
     /// Blauer Luna-Verlauf für Titel-/Kopfleisten.
     static let titleGradient = LinearGradient(
         colors: [titleTop, titleMid, titleBottom],
         startPoint: .top, endPoint: .bottom
     )
+}
+
+extension View {
+    /// Titelleiste im Luna-Blau mit dünnem roten Abschluss.
+    func titleBarBackground() -> some View {
+        background(XP.titleGradient)
+            .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
+    }
 }
 
 extension Font {

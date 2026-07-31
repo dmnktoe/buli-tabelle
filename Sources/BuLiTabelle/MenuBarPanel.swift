@@ -40,13 +40,14 @@ struct MenuBarPanel: View {
         .frame(width: 300)
         .background(XP.face)
         .task {
+            Analytics.signal(.menuBarOpened)
             if model.rows.isEmpty { await model.reload() }
         }
     }
 
     private var header: some View {
         HStack(spacing: 5) {
-            MiniFlagIcon()
+            MiniBallIcon()
             Text("\(AppInfo.name) – \(model.liga.display)")
                 .font(.tahoma(11, bold: true))
                 .foregroundStyle(.white)
@@ -59,7 +60,7 @@ struct MenuBarPanel: View {
         }
         .padding(.horizontal, 6)
         .frame(height: 24)
-        .background(XP.titleGradient)
+        .titleBarBackground()
     }
 
     private var tableHead: some View {
@@ -77,6 +78,7 @@ struct MenuBarPanel: View {
         .foregroundStyle(.white)
         .frame(height: 16)
         .background(Color.black)
+        .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
     }
 
     private func compactRow(_ row: TableRow) -> some View {
@@ -128,6 +130,7 @@ struct MenuBarPanel: View {
     }
 
     private func openMainWindow() {
+        Analytics.signal(.menuBarWindowOpened)
         NSApp.setActivationPolicy(.regular)
         openWindow(id: "main")
         NSApp.activate(ignoringOtherApps: true)

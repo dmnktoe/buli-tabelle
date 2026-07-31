@@ -1,16 +1,18 @@
 import SwiftUI
 import AppKit
 
-/// Kleines Deutschland-Fähnchen (schwarz-rot-gold) für Titel-/Kopfleisten.
-struct MiniFlagIcon: View {
+/// Kleines Ball-Symbol für Titel- und Kopfleisten – weiß auf dem blauen Verlauf.
+struct MiniBallIcon: View {
+    var size: CGFloat = 14
+
     var body: some View {
-        VStack(spacing: 0) {
-            Color.black
-            XP.flagRed
-            XP.flagYellow
-        }
-        .frame(width: 16, height: 13)
-        .overlay(Rectangle().strokeBorder(Color.white.opacity(0.8), lineWidth: 1))
+        Image(nsImage: .soccerBall)
+            .renderingMode(.template)
+            .resizable()
+            .interpolation(.high)
+            .frame(width: size, height: size)
+            .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.4), radius: 0, x: 1, y: 1)
     }
 }
 
@@ -22,7 +24,7 @@ struct LeaguePlate: View {
         VStack(spacing: 0) {
             Text(liga.short)
                 .font(.tahoma(13, bold: true))
-                .foregroundStyle(.black)
+                .foregroundStyle(XP.bundesligaRed)
             Text(season)
                 .font(.tahoma(10))
                 .foregroundStyle(XP.darkShadow)
@@ -31,29 +33,31 @@ struct LeaguePlate: View {
         .padding(.vertical, 5)
         .frame(maxWidth: .infinity)
         .background(Color.white)
+        .overlay(alignment: .bottom) { XP.bundesligaRed.frame(height: 2) }
         .bevel(sunken: true)
     }
 }
 
 extension NSImage {
-    /// Menüleisten-Symbol: gezeichnetes Deutschland-Fähnchen.
-    static let menuBarFlag: NSImage = {
-        let size = NSSize(width: 18, height: 12)
-        let image = NSImage(size: size, flipped: false) { rect in
-            let h = rect.height / 3
-            NSColor.black.setFill()
-            NSRect(x: rect.minX, y: rect.minY + 2 * h, width: rect.width, height: h).fill()
-            NSColor(srgbRed: 0.933, green: 0.110, blue: 0.145, alpha: 1).setFill()
-            NSRect(x: rect.minX, y: rect.minY + h, width: rect.width, height: h).fill()
-            NSColor(srgbRed: 1.0, green: 0.902, blue: 0.0, alpha: 1).setFill()
-            NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: h).fill()
-            NSColor.white.withAlphaComponent(0.85).setStroke()
-            let border = NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5))
-            border.lineWidth = 1
-            border.stroke()
-            return true
-        }
-        image.isTemplate = false
+    /// Fußball als Template-Image: macOS färbt es selbst passend zur hellen oder
+    /// dunklen Menüleiste. Vektor-PDF, damit jede Auflösung scharf bleibt.
+    static let soccerBall: NSImage = {
+        let image = Bundle.main.url(forResource: "MenuBarBall", withExtension: "pdf")
+            .flatMap { NSImage(contentsOf: $0) } ?? ringFallback()
+        image.size = NSSize(width: 15, height: 15)
+        image.isTemplate = true
         return image
     }()
+
+    /// Ohne App-Bundle (etwa bei `swift run`) gibt es keine Ressourcen –
+    /// dann wenigstens ein schlichter Ring statt eines leeren Platzhalters.
+    private static func ringFallback() -> NSImage {
+        NSImage(size: NSSize(width: 15, height: 15), flipped: false) { rect in
+            NSColor.black.setStroke()
+            let ring = NSBezierPath(ovalIn: rect.insetBy(dx: 1.5, dy: 1.5))
+            ring.lineWidth = 1.5
+            ring.stroke()
+            return true
+        }
+    }
 }

@@ -26,6 +26,7 @@ final class UpdaterManager: ObservableObject {
     }
 
     func checkForUpdates() {
+        Analytics.signal(.updateCheckRequested, ["mode": "sparkle"])
         controller?.checkForUpdates(nil)
     }
 }

@@ -7,6 +7,32 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [1.1.0] – 2026-07-31
+
+### Hinzugefügt
+
+- Die anonyme Nutzungsstatistik erfasst jetzt auch **einzelne Ereignisse** statt
+  nur den Programmstart: Ligawechsel, Spieltagsnavigation, Export, Kopieren,
+  Drucken, geöffnete Fenster, Update-Suche und Ladefehler. Weiterhin ohne
+  personenbezogene Daten und weiterhin in den Einstellungen abschaltbar — wer
+  den Schalter umlegt, sendet ab diesem Moment nichts mehr.
+
+### Geändert
+
+- **Neues App-Icon** aus dem Icon Composer: weißer Fußball auf Bundesliga-rotem
+  Verlauf. Es liegt allen Größen zugrunde — Programmsymbol, Downloadseite und
+  Favicons.
+- **Bundesliga-Rot** als dezenter Akzent durch die ganze App und die
+  Downloadseite: roter Abschluss unter den Titelleisten und Tabellenköpfen,
+  rote Rubriken in der Aktionsspalte, rot umrandete Hauptschaltflächen. Die
+  Zonenfarben und die Formkurve bleiben unangetastet, damit Rot dort weiter
+  „Abstieg“ bzw. „Niederlage“ heißt.
+- Das **Menüleisten-Symbol** ist jetzt der Fußball statt der
+  Deutschland-Flagge — als Template-Image, das sich heller und dunkler
+  Menüleiste selbst anpasst. Auch die Titelleisten tragen den Ball.
+- Das App-Bundle heißt jetzt **„BuLi Tabelle.app“** mit Leerzeichen. Der Name
+  der Download-Datei bleibt `BuLiTabelle-<Version>.zip`.
+
 ## [1.0.0] – 2026-07-31
 
 ### Hinzugefügt
@@ -39,6 +65,8 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
   Retro-Auswahlfelder.
 - App-Icon und die Icons der Downloadseite werden aus den Bauteilen der App
   selbst gezeichnet — Luna-Verlauf, schwarze Kopfzeile, Zonenfarben.
+  (Ab 1.1.0 durch das Icon-Composer-Icon ersetzt.)
 
-[Unveröffentlicht]: https://github.com/dmnktoe/buli-tabelle/compare/v1.0.0...HEAD
+[Unveröffentlicht]: https://github.com/dmnktoe/buli-tabelle/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/dmnktoe/buli-tabelle/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/dmnktoe/buli-tabelle/releases/tag/v1.0.0
