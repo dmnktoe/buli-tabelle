@@ -16,6 +16,7 @@ struct MenuBarPanel: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            liveSection
             if model.liga.isCup {
                 cupSection
             } else {
@@ -28,6 +29,62 @@ struct MenuBarPanel: View {
         .task {
             Analytics.signal(.menuBarOpened)
             if model.rows.isEmpty && model.cupRounds.isEmpty { await model.reload() }
+            model.startLiveTicker()
+        }
+    }
+
+    /// Was gerade läuft, steht ganz oben – dafür klappt man das Panel auf.
+    @ViewBuilder
+    private var liveSection: some View {
+        if !model.live.running.isEmpty {
+            HStack(spacing: 4) {
+                LiveBadge(compact: true)
+                Text("läuft gerade")
+                    .font(.tahoma(9, bold: true))
+                    .foregroundStyle(.white)
+                Spacer(minLength: 0)
+                Text(model.liveUpdatedText)
+                    .font(.tahoma(8))
+                    .foregroundStyle(.white.opacity(0.8))
+            }
+            .lineLimit(1)
+            .padding(.horizontal, 5)
+            .frame(height: 16)
+            .background(Color.black)
+            .overlay(alignment: .bottom) { XP.liveRed.frame(height: 2) }
+
+            ForEach(model.live.running) { match in
+                liveRow(match)
+            }
+        }
+    }
+
+    private func liveRow(_ match: OLMatch) -> some View {
+        HStack(spacing: 4) {
+            Text(model.liveMinute(for: match) ?? "")
+                .font(.tahoma(9, bold: true))
+                .foregroundStyle(XP.liveRed)
+                .frame(width: 24, alignment: .leading)
+                .help(model.liveMinuteHint)
+            Text(match.team1.displayShort)
+                .font(.tahoma(10))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            Text(model.liveScore(for: match)?.text ?? "– : –")
+                .font(.tahoma(10, bold: true))
+                .foregroundStyle(XP.liveRed)
+                .frame(width: 44)
+            Text(match.team2.displayShort)
+                .font(.tahoma(10))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .foregroundStyle(.black)
+        .padding(.horizontal, 5)
+        .frame(height: 18)
+        .background(model.isFlashing(match) ? XP.goalFlash : Color.white)
+        .overlay(alignment: .bottom) {
+            Color(hex: 0xE4E2D8).frame(height: 1)
         }
     }
 

@@ -59,6 +59,11 @@ extension Analytics {
         case matchdayChanged = "Matchday.changed"
         case matchdayPanelToggled = "MatchdayPanel.toggled"
 
+        /// Einmal je Sitzung, sobald zum ersten Mal ein Spiel läuft.
+        case liveDetected = "Live.detected"
+        case liveToggled = "Live.toggled"
+        case liveTableToggled = "Live.tableToggled"
+
         case teamSelected = "Team.selected"
         case favoriteSet = "Team.favoriteSet"
         case favoriteCleared = "Team.favoriteCleared"

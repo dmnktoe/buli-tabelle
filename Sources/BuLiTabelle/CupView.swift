@@ -30,10 +30,13 @@ struct CupRoundHeader: View {
 
 /// Eine Paarung. Der Sieger steht fett, der Ausgeschiedene wird abgeblendet.
 struct CupPairingRow: View {
+    @EnvironmentObject var model: AppModel
     @AppStorage("favoriteTeam") private var favoriteTeam = 0
 
     let match: OLMatch
     let index: Int
+
+    private var live: LiveScore? { model.liveScore(for: match) }
 
     private func isWinner(_ side: CupSide) -> Bool { match.cupWinner == side }
     private func isLoser(_ side: CupSide) -> Bool {
@@ -54,21 +57,41 @@ struct CupPairingRow: View {
             .frame(maxWidth: .infinity, alignment: alignment)
     }
 
-    var body: some View {
-        HStack(spacing: 5) {
+    /// Anstoßzeit – oder das Live-Schild, solange gespielt wird.
+    @ViewBuilder
+    private var timeColumn: some View {
+        if live != nil {
+            HStack(spacing: 0) {
+                LiveBadge(minute: model.liveMinute(for: match))
+                Spacer(minLength: 0)
+            }
+            .help(model.liveMinuteHint)
+        } else {
             Text(match.kickoffText)
                 .font(.tahoma(10))
                 .foregroundStyle(XP.darkShadow)
                 .lineLimit(1)
+        }
+    }
+
+    private var rowBackground: Color {
+        if model.isFlashing(match) { return XP.goalFlash }
+        if involvesFavorite { return XP.favoriteFill }
+        return index % 2 == 0 ? Color.white : Color(hex: 0xF7F6F0)
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            timeColumn
                 .frame(width: CupCol.kickoff, alignment: .leading)
 
             teamText(match.team1, .team1, alignment: .trailing)
             TeamIconView(urlString: match.team1.teamIconUrl,
                          fallback: match.team1.displayShort)
 
-            Text(match.cupScoreText)
-                .font(.tahoma(11, bold: match.matchIsFinished))
-                .foregroundStyle(.black)
+            Text(live?.text ?? match.cupScoreText)
+                .font(.tahoma(11, bold: match.matchIsFinished || live != nil))
+                .foregroundStyle(live != nil ? XP.liveRed : .black)
                 .frame(width: CupCol.score)
 
             TeamIconView(urlString: match.team2.teamIconUrl,
@@ -82,10 +105,11 @@ struct CupPairingRow: View {
         }
         .padding(.horizontal, 6)
         .frame(height: 21)
-        .background(involvesFavorite ? XP.favoriteFill : (index % 2 == 0 ? Color.white : Color(hex: 0xF7F6F0)))
+        .background(rowBackground)
         .overlay(alignment: .bottom) {
             Color(hex: 0xE4E2D8).frame(height: 1)
         }
+        .animation(.easeOut(duration: 0.35), value: model.isFlashing(match))
     }
 }
 

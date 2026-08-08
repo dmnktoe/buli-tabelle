@@ -22,19 +22,26 @@ extension MatchOutcome {
 }
 
 /// Kleine Ergebnis-Kästchen der letzten (bis zu 5) Spiele – Grün/Grau/Rot.
+/// Zählt ein laufendes Spiel mit, bekommt das letzte Kästchen einen kräftigen
+/// Rand: Das Ergebnis steht noch nicht fest.
 struct FormDots: View {
     let form: [MatchOutcome]
+    var lastIsLive = false
 
     var body: some View {
         HStack(spacing: 2) {
             Spacer(minLength: 0)
-            ForEach(Array(form.enumerated()), id: \.offset) { _, outcome in
+            ForEach(Array(form.enumerated()), id: \.offset) { index, outcome in
+                let isLive = lastIsLive && index == form.count - 1
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(outcome.color)
                     .frame(width: 7, height: 7)
                     .overlay(
                         RoundedRectangle(cornerRadius: 1.5)
-                            .strokeBorder(Color.black.opacity(0.18), lineWidth: 0.5)
+                            .strokeBorder(
+                                Color.black.opacity(isLive ? 0.9 : 0.18),
+                                lineWidth: isLive ? 1 : 0.5
+                            )
                     )
             }
         }
@@ -42,7 +49,42 @@ struct FormDots: View {
     }
 }
 
+/// Platzziffer mit Live-Punkt und Bewegungspfeil.
+///
+/// Der schwarze Punkt der Tabelle blinkt, wenn die Mannschaft gerade spielt;
+/// der Pfeil zeigt, wie viele Plätze die laufenden Spiele sie gegenüber der
+/// offiziellen Tabelle nach oben oder unten schieben. Beides bleibt bewusst
+/// schwarz – Grün und Rot sind in der Tabelle schon vergeben.
+struct PositionCell: View {
+    let row: TableRow
+
+    private var movementHint: String {
+        "Offiziell Platz \(row.position + row.movement) – laufende Spiele eingerechnet Platz \(row.position)"
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if row.isLive {
+                LiveDot(size: 7, color: .black)
+                    .help("Spielt gerade")
+            } else {
+                Circle().fill(Color.black).frame(width: 7, height: 7)
+            }
+            Text("\(row.position)").font(.tahoma(11))
+            if row.movement != 0 {
+                Image(systemName: row.movement > 0 ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
+                    .font(.system(size: 7))
+                    .foregroundStyle(.black)
+                    .help(movementHint)
+            }
+        }
+        .padding(.leading, 5)
+        .frame(width: Col.platz + 5, alignment: .leading)
+    }
+}
+
 struct TableHeader: View {
+    @EnvironmentObject var model: AppModel
     @AppStorage("showForm") private var showForm = true
 
     private func head(_ t: String, _ w: CGFloat) -> some View {
@@ -54,9 +96,17 @@ struct TableHeader: View {
             Text("PLATZ")
                 .padding(.leading, 5)
                 .frame(width: Col.platz + 5, alignment: .leading)
-            Text("MANNSCHAFT")
-                .padding(.leading, Col.icon + 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 4) {
+                Text("MANNSCHAFT")
+                Spacer(minLength: 0)
+                // Steht hier das Schild, sind laufende Spiele eingerechnet.
+                if model.showsLiveTable {
+                    LiveBadge(compact: true)
+                        .help("Laufende Spiele sind in Punkte, Tore und Platzierung eingerechnet.")
+                }
+            }
+            .padding(.leading, Col.icon + 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
             head("SP", Col.sp)
             head("S", Col.sun)
             head("U", Col.sun)
@@ -107,12 +157,7 @@ struct TableRowView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            HStack(spacing: 6) {
-                Circle().fill(Color.black).frame(width: 7, height: 7)
-                Text("\(row.position)").font(.tahoma(11))
-            }
-            .padding(.leading, 5)
-            .frame(width: Col.platz + 5, alignment: .leading)
+            PositionCell(row: row)
 
             if showLogos {
                 TeamIconView(urlString: row.team.teamIconUrl,
@@ -139,7 +184,7 @@ struct TableRowView: View {
             cell("\(row.diff)", Col.diff)
             cell("\(row.pkt)", Col.pkt, bold: true)
             if showForm {
-                FormDots(form: row.form)
+                FormDots(form: row.form, lastIsLive: row.isLive)
             }
         }
         .padding(.trailing, 5)

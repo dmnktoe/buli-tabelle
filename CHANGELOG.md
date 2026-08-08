@@ -7,6 +7,44 @@ die Versionierung an [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [1.3.0] – 2026-08-08
+
+### Hinzugefügt
+
+- **Live-Ticker.** Während gespielt wird, zeigt die App den laufenden Spielstand
+  statt „– : –“ und aktualisiert sich von selbst.
+  - Eine **Live-Leiste** tritt an die Stelle des Infobands: Sie sagt, wie viele
+    Spiele laufen bzw. wie weit die einzelne Partie ist, und wann zuletzt
+    nachgefragt wurde. Sie nimmt keine zusätzliche Höhe weg.
+  - Im **Spieltag-Bereich** steht links statt der Anstoßzeit ein rotes
+    LIVE-Schild mit der Spielminute, der Spielstand steht rot und fett. Fällt
+    ein Tor, leuchtet die Zeile kurz auf. Läuft etwas auf dem gezeigten
+    Spieltag, klappt der Bereich beim ersten Mal von selbst auf.
+  - Die **Tabelle rechnet mit:** Laufende Spiele zählen wie abgepfiffene, ein
+    Pfeil zeigt die Bewegung gegenüber der offiziellen Tabelle, der Punkt vor
+    dem Platz blinkt bei den Mannschaften, die gerade spielen, und das letzte
+    Kästchen der Formkurve bekommt einen kräftigen Rand. Über die Live-Leiste
+    oder die Einstellungen lässt sich das abschalten.
+  - **Export, Kopieren und Drucken** kennzeichnen eine solche Tabelle als
+    „Zwischenstand“ – amtlich ist sie erst nach dem Abpfiff.
+  - Das **Menüleisten-Panel** stellt die laufenden Spiele nach oben, das Symbol
+    in der Menüleiste bekommt einen roten Punkt.
+  - Auf Wunsch **meldet die App Tore des Lieblingsvereins** als Mitteilung
+    (standardmäßig aus).
+  - Der **DFB-Pokal** ist mit dabei: Live-Schild und Zwischenstand stehen auch
+    in den Paarungen der Runde.
+- Beim Öffnen springt die App auf den Spieltag, auf dem **gerade gespielt wird**
+  – vorher war es der letzte Spieltag mit einem abgepfiffenen Spiel.
+
+### Geändert
+
+- Anstoßzeiten werden aus der **UTC-Angabe** der API gelesen, wenn sie vorhanden
+  ist. Für Deutschland ändert sich nichts; in anderen Zeitzonen stimmt die
+  angezeigte Uhrzeit jetzt.
+- Während der Spiele fragt die App höchstens alle 30 Sekunden nach und prüft
+  vorher über den Änderungsstempel von OpenLigaDB, ob es überhaupt etwas Neues
+  gibt.
+
 ## [1.2.1] – 2026-07-31
 
 ### Geändert

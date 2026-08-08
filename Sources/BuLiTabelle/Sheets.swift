@@ -141,7 +141,9 @@ struct StatsSheet: View {
 }
 
 struct SettingsSheet: View {
+    @EnvironmentObject var model: AppModel
     let onClose: () -> Void
+    @AppStorage(LiveNotifier.defaultsKey) private var notifyFavoriteGoals = false
     @AppStorage("zoneColors") private var zoneColors = true
     @AppStorage("showLogos") private var showLogos = true
     @AppStorage("showForm") private var showForm = true
@@ -167,6 +169,25 @@ struct SettingsSheet: View {
                     .toggleStyle(XPCheckboxStyle())
                 Toggle("Formkurve (letzte 5) anzeigen", isOn: $showForm)
                     .toggleStyle(XPCheckboxStyle())
+
+                Text("Live")
+                    .font(.tahoma(11, bold: true))
+                    .foregroundStyle(.black)
+                    .padding(.top, 4)
+                Toggle("Laufende Spiele mitverfolgen", isOn: $model.liveEnabled)
+                    .toggleStyle(XPCheckboxStyle())
+                Toggle("Zwischenstände in die Tabelle einrechnen", isOn: $model.liveInTable)
+                    .toggleStyle(XPCheckboxStyle())
+                    .disabled(!model.liveEnabled)
+                    .opacity(model.liveEnabled ? 1 : 0.45)
+                Toggle("Tore des Lieblingsvereins mitteilen", isOn: $notifyFavoriteGoals)
+                    .toggleStyle(XPCheckboxStyle())
+                    .disabled(!model.liveEnabled)
+                    .opacity(model.liveEnabled ? 1 : 0.45)
+                Text("Während der Spiele fragt die App alle 30 Sekunden bei OpenLigaDB nach. Die Spielminute ist aus der Anstoßzeit hochgerechnet.")
+                    .font(.tahoma(10))
+                    .foregroundStyle(XP.darkShadow)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("Menüleiste")
                     .font(.tahoma(11, bold: true))
@@ -195,6 +216,11 @@ struct SettingsSheet: View {
                     .frame(maxWidth: .infinity)
             }
             .frame(width: 250)
+            .onChange(of: notifyFavoriteGoals) { on in
+                track("notifyFavoriteGoals", on)
+                // Erst fragen, wenn jemand die Mitteilungen wirklich will.
+                if on { LiveNotifier.requestAuthorization() }
+            }
             .onChange(of: zoneColors) { track("zoneColors", $0) }
             .onChange(of: showLogos) { track("showLogos", $0) }
             .onChange(of: showForm) { track("showForm", $0) }

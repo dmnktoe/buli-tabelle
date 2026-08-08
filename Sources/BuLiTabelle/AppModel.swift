@@ -49,9 +49,62 @@ final class AppModel: ObservableObject {
     @Published private(set) var loadingStats = false
     @Published private(set) var isLoading = false
 
+    // MARK: - Live-Zustand
+
+    /// Was gerade läuft. Einmal pro Ticker-Schlag bestimmt, damit die Ansichten
+    /// nicht bei jedem Neuzeichnen sämtliche Anstoßzeiten auswerten müssen.
+    @Published private(set) var live: LiveOverview = .idle
+    /// Uhrzeit, auf die sich Spielminuten und Hervorhebungen beziehen.
+    @Published private(set) var liveNow = Date()
+    /// Wann zuletzt beim Server nachgefragt wurde.
+    @Published private(set) var lastLiveUpdate: Date?
+    /// Spiele, in denen gerade ein Tor gefallen ist (Spiel-ID → Zeitpunkt).
+    @Published private(set) var flashingMatches: [Int: Date] = [:]
+
+    @Published var liveEnabled: Bool = AppModel.flag("liveUpdates", default: true) {
+        didSet {
+            guard oldValue != liveEnabled else { return }
+            UserDefaults.standard.set(liveEnabled, forKey: "liveUpdates")
+            Analytics.signal(.liveToggled, ["state": liveEnabled ? "on" : "off"])
+            if liveEnabled {
+                refreshLive()
+                startLiveTicker()
+            } else {
+                stopLiveTicker()
+                live = .idle
+                flashingMatches = [:]
+            }
+            recompute()
+        }
+    }
+
+    @Published var liveInTable: Bool = AppModel.flag("liveInTable", default: true) {
+        didSet {
+            guard oldValue != liveInTable else { return }
+            UserDefaults.standard.set(liveInTable, forKey: "liveInTable")
+            Analytics.signal(.liveTableToggled, ["state": liveInTable ? "on" : "off"])
+            recompute()
+        }
+    }
+
     private var matches: [OLMatch] = []
     /// Zählt Ladevorgänge, damit nur der jüngste den Ladezustand beendet.
     private var loadGeneration = 0
+
+    private var liveTask: Task<Void, Never>?
+    private var liveGeneration = 0
+    private var lastPollAttempt: Date?
+    private var lastChangeStamp: String?
+    /// Die Spielstände, mit denen die aktuelle Tabelle gerechnet wurde.
+    private var appliedLiveScores: [Int: LiveScore] = [:]
+    private var didAutoExpandMatchday = false
+    private var didReportLive = false
+
+    /// So lange bleibt eine Torzeile hervorgehoben.
+    static let flashSeconds: TimeInterval = 60
+    /// Taktung des Live-Tickers – engmaschig, solange etwas läuft.
+    private static let watchTick: UInt64 = 10
+    private static let idleTick: UInt64 = 60
 
     let currentSeason: Int
     let seasons: [Int]
@@ -62,21 +115,34 @@ final class AppModel: ObservableObject {
         seasons = SeasonCalendar.selectable()
     }
 
+    /// Einstellung mit eigenem Standardwert – unabhängig davon, ob die
+    /// registrierten Voreinstellungen schon greifen.
+    private static func flag(_ key: String, default fallback: Bool) -> Bool {
+        UserDefaults.standard.object(forKey: key) as? Bool ?? fallback
+    }
+
     // MARK: - Abgeleitete Anzeige-Werte
 
     var seasonString: String { SeasonCalendar.longString(season) }
     var seasonShort: String { SeasonCalendar.shortString(season) }
 
+    /// Rechnet die gezeigte Tabelle gerade laufende Spiele mit?
+    var showsLiveTable: Bool { rows.contains(where: \.isLive) }
+
     var tableTitle: String {
         if liga.isCup {
             return "\(liga.display) \(seasonString) – \(roundName(spieltag))"
         }
-        let base = "\(liga.display) \(seasonString) – \(spieltag). Spieltag"
+        var title = "\(liga.display) \(seasonString) – \(spieltag). Spieltag"
         switch tableMode {
-        case .gesamt: return base
-        case .heim: return base + " (Heimtabelle)"
-        case .auswaerts: return base + " (Auswärtstabelle)"
+        case .gesamt: break
+        case .heim: title += " (Heimtabelle)"
+        case .auswaerts: title += " (Auswärtstabelle)"
         }
+        // Ehrlich bleiben: Was hier exportiert, kopiert oder gedruckt wird, ist
+        // ein Zwischenstand, keine amtliche Tabelle.
+        if showsLiveTable { title += " – Zwischenstand" }
+        return title
     }
 
     var canGoPrevSpieltag: Bool { spieltag > 1 }
@@ -114,8 +180,16 @@ final class AppModel: ObservableObject {
         status = "Lade Daten aus dem Internet…"
         do {
             let ms = try await api.matches(liga: liga, season: season)
+            // Ein überholter Ladevorgang darf die frischeren Daten nicht ersetzen.
+            guard generation == loadGeneration else { return }
             matches = ms
             maxSpieltag = ms.map(\.group.groupOrderID).max() ?? (liga.isCup ? 6 : 34)
+            // Frisch geladen ist frisch genug: Der Ticker fängt erst danach an
+            // zu zählen, statt gleich noch einmal nachzufragen.
+            lastChangeStamp = nil
+            lastLiveUpdate = Date()
+            lastPollAttempt = Date()
+            refreshLive()
             // `recompute()` baut die Runden – hier reicht der Sprung ans Ziel.
             let target = min(defaultPeriod(for: ms), maxSpieltag)
             if spieltag == target {
@@ -123,6 +197,7 @@ final class AppModel: ObservableObject {
             } else {
                 spieltag = target
             }
+            startLiveTicker()
             status = ms.isEmpty ? "Keine Daten für diese Saison verfügbar" : "Fertig"
             Analytics.signal(.tableLoaded, [
                 "liga": liga.rawValue,
@@ -139,6 +214,7 @@ final class AppModel: ObservableObject {
             rows = []
             cupRounds = []
             matchesOfSpieltag = []
+            live = .idle
             status = "Fehler beim Laden"
             Analytics.signal(.tableLoadFailed, [
                 "liga": liga.rawValue,
@@ -154,16 +230,22 @@ final class AppModel: ObservableObject {
 
     /// Auf welchen Spieltag bzw. welche Runde nach dem Laden gesprungen wird.
     ///
-    /// In der Liga ist das der letzte angepfiffene Spieltag. Im Pokal liegen
-    /// zwischen den Runden Wochen — dort ist die erste noch nicht abgeschlossene
-    /// Runde interessanter als die letzte gespielte.
-    private func defaultPeriod(for ms: [OLMatch]) -> Int {
+    /// In der Liga ist das der Spieltag, auf dem gerade gespielt wird — sonst der
+    /// letzte angepfiffene. Im Pokal liegen zwischen den Runden Wochen; dort ist
+    /// die erste noch nicht abgeschlossene Runde interessanter als die letzte
+    /// gespielte.
+    private func defaultPeriod(for ms: [OLMatch], now: Date = Date()) -> Int {
         if liga.isCup {
             let rounds = CupBracket.rounds(from: ms)
             if let running = rounds.first(where: { $0.isDrawn && !$0.isComplete }) {
                 return running.order
             }
             return rounds.last(where: \.isDrawn)?.order ?? 1
+        }
+        let window = liga.liveWindow
+        if let live = ms.filter({ $0.isLive(at: now, window: window) })
+            .map(\.group.groupOrderID).max() {
+            return live
         }
         return ms.filter(\.matchIsFinished).map(\.group.groupOrderID).max() ?? 1
     }
@@ -182,17 +264,245 @@ final class AppModel: ObservableObject {
     }
 
     func recompute() {
+        let running = liveScores
         if liga.isCup {
             // K.-o.-System: keine Tabelle, stattdessen die Runden des Wettbewerbs.
             rows = []
             cupRounds = CupBracket.rounds(from: matches)
         } else {
             cupRounds = []
-            rows = Standings.compute(from: matches, upTo: spieltag, mode: tableMode)
+            let table = Standings.compute(from: matches, upTo: spieltag, mode: tableMode, live: running)
+            if running.isEmpty {
+                rows = table
+            } else {
+                // Nur fürs Pfeilchen: dieselbe Tabelle noch einmal ohne die
+                // laufenden Spiele, damit die Bewegung ablesbar wird.
+                let official = Standings.compute(from: matches, upTo: spieltag, mode: tableMode)
+                rows = Standings.withMovement(table, against: official)
+            }
         }
+        appliedLiveScores = running
         matchesOfSpieltag = matches
             .filter { $0.group.groupOrderID == spieltag }
             .sorted { ($0.matchDateTime ?? "") < ($1.matchDateTime ?? "") }
+        autoExpandMatchdayIfNeeded()
+    }
+
+    // MARK: - Live
+
+    /// Laufende Spielstände, wie sie in die Tabelle einfließen. Leer, sobald
+    /// eine der beiden Live-Einstellungen aus ist oder der Pokal läuft (dort
+    /// gibt es keine Tabelle).
+    private var liveScores: [Int: LiveScore] {
+        guard liveEnabled, liveInTable, !liga.isCup else { return [:] }
+        var map: [Int: LiveScore] = [:]
+        for match in live.running {
+            map[match.matchID] = match.runningScore ?? LiveScore(team1: 0, team2: 0)
+        }
+        return map
+    }
+
+    /// Bestimmt neu, was läuft, und stellt die Uhr weiter.
+    private func refreshLive(now: Date = Date()) {
+        guard liveEnabled else {
+            live = .idle
+            liveNow = now
+            return
+        }
+        let updated = LiveOverview.make(from: matches, liga: liga, now: now)
+        // Solange nichts ansteht, bleibt auch die Uhr stehen: Ein Ticken ohne
+        // Spiele würde nur das halbe Fenster neu zeichnen lassen.
+        if updated.isWatching || live.isWatching {
+            live = updated
+            liveNow = now
+        }
+        if !flashingMatches.isEmpty {
+            flashingMatches = flashingMatches.filter {
+                now.timeIntervalSince($0.value) < Self.flashSeconds
+            }
+        }
+        if live.isActive, !didReportLive {
+            didReportLive = true
+            Analytics.signal(.liveDetected, ["liga": liga.rawValue])
+        }
+    }
+
+    /// Läuft etwas auf dem gezeigten Spieltag, klappt der Spieltag-Bereich einmal
+    /// von selbst auf – wer ihn zuklappt, hat wieder das letzte Wort.
+    private func autoExpandMatchdayIfNeeded() {
+        guard !didAutoExpandMatchday, !liga.isCup, !showSpieltagMenu,
+              live.isActive, live.periods.contains(spieltag)
+        else { return }
+        didAutoExpandMatchday = true
+        showSpieltagMenu = true
+    }
+
+    func startLiveTicker() {
+        guard liveEnabled, liveTask == nil else { return }
+        liveGeneration += 1
+        let generation = liveGeneration
+        liveTask = Task { [weak self] in
+            await self?.runLiveTicker(generation: generation)
+        }
+    }
+
+    func stopLiveTicker() {
+        liveGeneration += 1
+        liveTask?.cancel()
+        liveTask = nil
+    }
+
+    /// Ein Schlag alle 10 Sekunden, solange etwas läuft oder gleich anfängt –
+    /// sonst einmal pro Minute, nur um nachzusehen, ob es losgeht.
+    private func runLiveTicker(generation: Int) async {
+        while !Task.isCancelled {
+            let seconds = live.isWatching ? Self.watchTick : Self.idleTick
+            try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+            guard !Task.isCancelled, generation == liveGeneration, liveEnabled else { break }
+            let wasWatching = live.isWatching
+            refreshLive()
+            autoExpandMatchdayIfNeeded()
+            if liveScores != appliedLiveScores { recompute() }
+            // Gerade erst angepfiffen? Dann sofort nachfragen statt abzuwarten.
+            if !wasWatching, live.isWatching { lastPollAttempt = nil }
+            if live.isWatching, shouldPoll { await pollLive() }
+        }
+        if generation == liveGeneration { liveTask = nil }
+    }
+
+    private var pollInterval: TimeInterval { live.isActive ? 30 : 60 }
+
+    private var shouldPoll: Bool {
+        guard let last = lastPollAttempt else { return true }
+        return Date().timeIntervalSince(last) >= pollInterval - 1
+    }
+
+    /// Fragt die Spieltage nach, auf denen etwas läuft.
+    private func pollLive() async {
+        let liga = self.liga
+        let season = self.season
+        let periods = live.periods
+        guard !periods.isEmpty else { return }
+        lastPollAttempt = Date()
+
+        // Erst der Änderungsstempel: Hat sich nichts getan, sparen wir uns
+        // (und OpenLigaDB) die Spieldaten.
+        if let stamp = try? await api.lastChangeDate(liga: liga, season: season) {
+            guard self.liga == liga, self.season == season else { return }
+            if let known = lastChangeStamp, known == stamp {
+                lastLiveUpdate = Date()
+                return
+            }
+            lastChangeStamp = stamp
+        }
+
+        var fresh: [OLMatch] = []
+        for period in periods {
+            guard let loaded = try? await api.matches(liga: liga, season: season, period: period)
+            else { continue }
+            guard self.liga == liga, self.season == season else { return }
+            fresh.append(contentsOf: loaded)
+        }
+        guard !fresh.isEmpty else { return }
+        apply(fresh)
+    }
+
+    /// Zieht frisch geladene Partien in den Datenbestand nach.
+    private func apply(_ fresh: [OLMatch]) {
+        let now = Date()
+        let before = scoreSnapshot(matches, at: now)
+
+        var index: [Int: Int] = [:]
+        for (position, match) in matches.enumerated() { index[match.matchID] = position }
+        for match in fresh {
+            if let position = index[match.matchID] {
+                matches[position] = match
+            } else {
+                matches.append(match)
+            }
+        }
+        maxSpieltag = max(maxSpieltag, matches.map(\.group.groupOrderID).max() ?? maxSpieltag)
+
+        let after = scoreSnapshot(matches, at: now)
+        lastLiveUpdate = now
+        refreshLive(now: now)
+        recompute()
+        announceGoals(before: before, after: after)
+    }
+
+    /// Spielstände aller Partien im Anstoßfenster – laufende wie eben
+    /// abgepfiffene. Zwei Aufnahmen davor und danach zeigen, wo es geklingelt hat.
+    private func scoreSnapshot(_ list: [OLMatch], at now: Date) -> [Int: LiveScore] {
+        let window = liga.liveWindow
+        var map: [Int: LiveScore] = [:]
+        for match in list {
+            guard let kickoff = match.kickoffDate,
+                  now >= kickoff,
+                  now < kickoff.addingTimeInterval(window)
+            else { continue }
+            if match.matchIsFinished {
+                if let final = match.finalScore { map[match.matchID] = final }
+            } else {
+                map[match.matchID] = match.runningScore ?? LiveScore(team1: 0, team2: 0)
+            }
+        }
+        return map
+    }
+
+    private func announceGoals(before: [Int: LiveScore], after: [Int: LiveScore]) {
+        let favorite = UserDefaults.standard.integer(forKey: "favoriteTeam")
+        for (id, score) in after {
+            // Ohne Vorher-Stand ist unklar, ob gerade getroffen wurde – beim
+            // ersten Blick auf ein Spiel bleibt es deshalb still.
+            guard let previous = before[id], previous != score else { continue }
+            flashingMatches[id] = Date()
+            if let match = matches.first(where: { $0.matchID == id }) {
+                LiveNotifier.goal(match: match, score: score, previous: previous, favorite: favorite)
+            }
+        }
+    }
+
+    // MARK: - Live-Werte für die Ansicht
+
+    /// Laufender Spielstand einer Partie – `nil`, wenn sie nicht (mehr) läuft.
+    func liveScore(for match: OLMatch) -> LiveScore? {
+        guard liveEnabled else { return nil }
+        return match.liveScore(at: liveNow, window: liga.liveWindow)
+    }
+
+    /// Geschätzte Spielminute, z. B. „63.“ oder „HZ“.
+    func liveMinute(for match: OLMatch) -> String? {
+        guard liveEnabled, match.isLive(at: liveNow, window: liga.liveWindow) else { return nil }
+        return match.phase(at: liveNow)?.label
+    }
+
+    /// Ist in dieser Partie gerade ein Tor gefallen?
+    func isFlashing(_ match: OLMatch) -> Bool {
+        guard let scored = flashingMatches[match.matchID] else { return false }
+        return liveNow.timeIntervalSince(scored) < Self.flashSeconds
+    }
+
+    /// Laufende Spiele des gezeigten Spieltags.
+    var liveMatchesOfSpieltag: [OLMatch] {
+        live.running.filter { $0.group.groupOrderID == spieltag }
+    }
+
+    /// Wird gerade woanders gespielt als dort, wo man hinsieht? Dann lohnt sich
+    /// ein Sprung – sonst hilft der Zwischenstand in dieser Tabelle nichts.
+    var livePeriodElsewhere: Int? {
+        guard live.isActive, !live.periods.contains(spieltag) else { return nil }
+        return live.periods.last
+    }
+
+    /// „Stand 15:47:12“ – wann zuletzt nachgefragt wurde.
+    var liveUpdatedText: String {
+        guard let stamp = lastLiveUpdate else { return "Stand wird geholt…" }
+        return "Stand \(MatchDate.timeWithSeconds(stamp))"
+    }
+
+    /// Hinweistext zur geschätzten Spielminute.
+    var liveMinuteHint: String {
+        "Spielminute aus der Anstoßzeit hochgerechnet – die Nachspielzeit kennt OpenLigaDB nicht."
     }
 
     // MARK: - Navigation
@@ -244,7 +554,7 @@ final class AppModel: ObservableObject {
     func openSettings() {
         Analytics.signal(.settingsOpened)
         panels.show("settings") { closer in
-            SettingsSheet(onClose: closer.close)
+            SettingsSheet(onClose: closer.close).environmentObject(self)
         }
     }
 

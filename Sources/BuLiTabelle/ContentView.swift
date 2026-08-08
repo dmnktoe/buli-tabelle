@@ -31,7 +31,13 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             TitleBar()
-            InfoStrip()
+            // Solange etwas läuft, übernimmt die Live-Leiste den Platz des
+            // Infobands – gleiche Höhe, dringlichere Nachricht.
+            if model.live.isActive {
+                LiveStrip()
+            } else {
+                InfoStrip()
+            }
             Color(hex: 0xC9C5B2).frame(height: 1)
 
             HStack(alignment: .top, spacing: 6) {

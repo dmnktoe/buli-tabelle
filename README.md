@@ -12,6 +12,12 @@ und 3D-Bevel-Ränder. Ein Stück Fußball-Nostalgie, das echte Live-Daten anzeig
 
 - **Live-Tabellen** der 1. Bundesliga, 2. Bundesliga und 3. Liga über
   [OpenLigaDB](https://www.openligadb.de)
+- **Live-Ticker:** Während gespielt wird, stehen der laufende Spielstand und die
+  Spielminute in der Liste, ein Tor lässt die Zeile kurz aufleuchten und die
+  Tabelle rechnet die laufenden Spiele mit — inklusive Pfeil, wie viele Plätze
+  das gegenüber der offiziellen Tabelle ausmacht. Die App aktualisiert sich
+  dafür alle 30 Sekunden von selbst; abschalten lässt sich beides. Auf Wunsch
+  meldet sie Tore des Lieblingsvereins als Mitteilung.
 - **DFB-Pokal** als eigener Modus: alle Runden von der 1. Runde bis zum Finale,
   mit Paarungen, Ergebnissen und dem Sieger jeder Partie — auch wenn erst die
   Verlängerung oder das Elfmeterschießen entschieden hat. Noch nicht ausgeloste
@@ -83,6 +89,14 @@ NOTARY_PROFILE="buli-notary" ./release.sh
 - **Robuste API-Anbindung:** OpenLigaDB-JSON wird case-unabhängig dekodiert
   (`Models.swift`) und funktioniert daher mit der alten PascalCase- wie der
   neuen camelCase-API
+- **Live ohne Spieluhr** (`Live.swift`): OpenLigaDB liefert keinen Spielstand
+  und keine laufende Uhr, sondern nur Tore mit Minutenangabe. Der Zwischenstand
+  ist deshalb der jüngste Treffer, die Spielminute ist aus der Anstoßzeit
+  hochgerechnet (die Nachspielzeit kennt die API nicht) und ein angepfiffenes
+  Spiel gilt nur innerhalb eines Zeitfensters als laufend — sonst bliebe eine
+  Partie, die nie als beendet gemeldet wird, für immer „live“. Nachgefragt wird
+  nur der betroffene Spieltag und erst, wenn `getlastchangedate` einen neuen
+  Stempel meldet
 - **Randloses Fenster:** Der native Titlebar-Bereich wird auf macOS 26 nicht mehr
   transparent und würde die gezeichnete XP-Titelleiste überdecken — deshalb läuft
   das Fenster ohne `.titled`-styleMask; Key-/Main-Fähigkeit bekommt die

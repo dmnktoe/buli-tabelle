@@ -107,6 +107,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             "showMenuBarItem": true,
             "keepInMenuBar": true,
             "sendAnalytics": true,
+            "liveUpdates": true,
+            "liveInTable": true,
+            "notifyFavoriteGoals": false,
         ])
     }
 
@@ -178,7 +181,16 @@ struct BuLiTabelleApp: App {
                 .environmentObject(model)
                 .environmentObject(updater)
         } label: {
+            // Läuft gerade ein Spiel, bekommt der Ball einen roten Punkt –
+            // in der Menüleiste sieht man das aus dem Augenwinkel.
             Image(nsImage: .soccerBall)
+                .overlay(alignment: .topTrailing) {
+                    if model.live.isActive {
+                        Circle()
+                            .fill(XP.liveRed)
+                            .frame(width: 5, height: 5)
+                    }
+                }
         }
         .menuBarExtraStyle(.window)
     }
